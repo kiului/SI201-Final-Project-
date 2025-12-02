@@ -24,3 +24,8 @@ if response.status_code != 200:
 else:
     data = response.json()
     print(json.dumps(data, indent=4))
+
+if __name__ == "__main__":
+    main()
+
+    unittest.main(verbosity=2)
