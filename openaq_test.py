@@ -26,62 +26,34 @@ else:
     print(json.dumps(data, indent=4))
 
 
-def fetch_openaq_data(city=None, country=None, limit=100):
+
+
+def fetch_locations(api_key, country_code, limit=50):
     """
-    Fetches latest air quality measurements from OpenAQ API v3.
+    Fetches monitoring station locations for a given country.
 
-    Args:
-        city (str): Optional city name filter.
-        country (str): Optional 2-letter country code filter.
-        limit (int): Number of results to return.
+    Inputs:
+        api_key (str)
+        country_code (str)
+        limit (int)
 
-    Returns:
-        pd.DataFrame: A DataFrame of measurements.
+    Output:
+        list of location dicts
     """
-
+    url = f"{BASE_URL}/locations"
+    headers = {"X-API-Key": api_key}
     params = {
+        "country": country_code,
         "limit": limit
     }
 
-    if city:
-        params["city"] = city
-    if country:
-        params["country"] = country
-
     try:
-        response = requests.get(BASE_URL, params=params)
+        response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         data = response.json()
 
-        if "results" not in data or len(data["results"]) == 0:
-            print("No results found.")
-            return pd.DataFrame()
-
-        # Flatten the measurements into a DataFrame
-        records = []
-        for item in data["results"]:
-            location = item.get("location")
-            city = item.get("city")
-            country = item.get("country")
-
-            for measure in item.get("measurements", []):
-                records.append({
-                    "location": location,
-                    "city": city,
-                    "country": country,
-                    "parameter": measure.get("parameter"),
-                    "value": measure.get("value"),
-                    "unit": measure.get("unit"),
-                    "lastUpdated": measure.get("lastUpdated")
-                })
-
-        return pd.DataFrame(records)
+        return data.get("results", [])
 
     except requests.exceptions.RequestException as e:
-        print(f"API request failed: {e}")
-        return pd.DataFrame()
-
-
-if __name__ == "__main__":
-    df = fetch_openaq_data(city="Los Angeles", country="US", limit=50)
-    print(df.head())
+        print(f"Error fetching locations: {e}")
+        return []
