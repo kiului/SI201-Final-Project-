@@ -203,61 +203,112 @@ def store_air_quality_data(conn, country_id, location_info, measurements):
     return rows_inserted
 
 def main():
-    """
-    Main function to run air quality data collection.
-    Respects 25-item limit per project requirements.
-    """
-    # Connect to database
+    print("=" * 50)
+    print("AIR QUALITY DATA COLLECTION")
+    print("=" * 50)
+    
     conn = sqlite3.connect('final_data.db')
+    cursor = conn.cursor()
     
-    # List of countries to collect data from (limit to ~25 total items)
-    # You'll need to coordinate with your team on which countries to use
-    countries = ["US", "GB", "IN", "JP", "BR"]  # Example - expand as needed
+    # Check if countries table exists
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='countries'")
+    if not cursor.fetchone():
+        print("   ✗ ERROR: 'countries' table doesn't exist!")
+        print("   → Please run openweather_fetch.py first")
+        conn.close()
+        return
     
+    countries = ["US", "GB", "IN", "JP", "BR"]
     total_items = 0
     max_items = 25
     
     for country_code in countries:
         if total_items >= max_items:
-            print(f"Reached 25-item limit. Stopping.")
             break
             
-        print(f"\nFetching air quality data for {country_code}...")
+        print(f"\n{'='*60}")
+        print(f"🌍 PROCESSING: {country_code}")
+        print(f"{'='*60}")
         
-        # Get locations for this country
+        # 1. Fetch locations
         locations = fetch_locations(API_KEY, country_code, limit=10)
         
         if not locations:
-            print(f"No locations found for {country_code}")
+            print(f"❌ No locations found")
             continue
         
-        # Process first location for this country (to respect item limit)
+        print(f"\n✅ Found {len(locations)} monitoring stations:")
+        for i, loc in enumerate(locations[:5], 1):
+            print(f"   {i}. {loc.get('name')} ({loc.get('locality', 'Unknown city')})")
+        
+        # 2. Use first location
         location = locations[0]
         location_id = location.get("id")
+        location_name = location.get("name")
         
-        # Get country_id from database (assuming it exists from openweather_fetch.py)
-        cursor = conn.cursor()
+        print(f"\n🎯 Selected: {location_name} (ID: {location_id})")
+        
+        # 3. Get country_id
         cursor.execute("SELECT id FROM countries WHERE country_code = ?", (country_code,))
         result = cursor.fetchone()
         
         if not result:
-            print(f"Country {country_code} not found in database. Skipping.")
+            print(f"❌ {country_code} not in database")
             continue
             
         country_id = result[0]
         
-        # Fetch measurements
+        # 4. Fetch measurements
         measurements = fetch_latest_measurements(API_KEY, location_id)
         
-        if measurements:
-            rows = store_air_quality_data(conn, country_id, location, measurements)
-            print(f"Stored {rows} measurements for {country_code}")
-            total_items += 1
-        else:
-            print(f"No measurements found for location {location_id}")
+        if not measurements:
+            print(f"❌ No measurements available")
+            continue
+        
+        print(f"\n📊 CURRENT AIR QUALITY:")
+        print("-" * 40)
+        for m in measurements:
+            param_info = m.get('parameter', {})
+            param_name = param_info.get('name', 'unknown').upper()
+            value = m.get('value')
+            unit = m.get('unit')
+            timestamp = m.get('datetime', {}).get('utc', 'unknown')
+            
+            print(f"   {param_name:6} = {value:6.2f} {unit:8} ({timestamp})")
+        
+        # 5. Store in database
+        rows = store_air_quality_data(conn, country_id, location, measurements)
+        print(f"\n💾 Saved {rows} measurements to database")
+        
+        total_items += 1
+        print(f"\n✓ Progress: {total_items}/{max_items} countries")
     
     conn.close()
-    print(f"\nTotal countries processed: {total_items}")
+    
+    print(f"\n{'='*60}")
+    print(f"🎉 COMPLETE: Processed {total_items} countries")
+    print(f"{'='*60}")
+    
+    # BONUS: Show what's in the database
+    print("\n📋 DATABASE SUMMARY:")
+    conn = sqlite3.connect('final_data.db')
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT COUNT(*) FROM air_quality_data")
+    total_rows = cursor.fetchone()[0]
+    print(f"   Total measurements stored: {total_rows}")
+    
+    cursor.execute("""
+        SELECT c.country_name, COUNT(*) 
+        FROM air_quality_data a
+        JOIN countries c ON a.country_id = c.id
+        GROUP BY c.country_name
+    """)
+    print(f"\n   By country:")
+    for country, count in cursor.fetchall():
+        print(f"      • {country}: {count} measurements")
+    
+    conn.close()
 
 if __name__ == "__main__":
     main()
