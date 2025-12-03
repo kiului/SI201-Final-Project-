@@ -21,3 +21,61 @@ if response.status_code != 200:
 else:
     data = response.json()
     print(json.dumps(data, indent=4))
+
+
+
+# Fetch one World Bank indicator value for a specific country and year
+def fetch_indicator(indicator_id, country_code, year):
+    # Construct the base API URL using country + indicator ID
+    BASE_URL = f"https://api.worldbank.org/v2/country/{country_code}/indicator/{indicator_id}"
+
+    params = {
+        "format": "json",
+        "per_page": 50,   # how many results per page (max 50)
+        "page": 1
+    }
+
+    response = requests.get(BASE_URL, params=params)
+
+    if response.status_code != 200:
+        print("Request failed for {country_code}")
+        return []
+
+
+    data = response.json()
+    
+    # World Bank API always returns: data[0] = metadata, data[1] = actual results
+    # If data[1] is missing, return empty list
+    if not data or len(data) < 2:
+        return []
+    
+     # Extract the list of indicator records
+    entries = data[1]
+
+    results = []
+
+    # Loop through every entry returned by the API
+    for item in entries:
+        # Only keep the entry where the year matches what the user wants
+        if item["date"] == str(year):
+            # Create a clean dictionary with only the useful fields
+            cleaned = {
+                "country_name": item["country"]["value"],
+                "country_code": item["countryiso3code"],
+                "indicator_id": item["country"]["id"],
+                "indicator_name": item["indicator"]["value"],
+                "year": int(item["date"]),
+                "value": item["value"]
+            }
+
+            results.append(cleaned)
+            break # Stop early because we found the correct year
+    return results
+
+print(fetch_indicator("NY.GDP.PCAP.CD", "USA", 2024))
+print(fetch_indicator("NY.GDP.PCAP.CD", "IND", 2024))
+print(fetch_indicator("NY.GDP.PCAP.CD", "CHN", 2024))
+print(fetch_indicator("NY.GDP.PCAP.CD", "GBR", 2024))
+print(fetch_indicator("NY.GDP.PCAP.CD", "BRA", 2024))
+print(fetch_indicator("NY.GDP.PCAP.CD", "AUS", 2024))
+print(fetch_indicator("NY.GDP.PCAP.CD", "DEU", 2024))
