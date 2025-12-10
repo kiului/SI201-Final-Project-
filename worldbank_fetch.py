@@ -165,6 +165,6 @@ save_indicator_to_db("NY.GDP.PCAP.CD", "CHN", 2024)
 save_indicator_to_db("NY.GDP.PCAP.CD", "GBR", 2024)
 save_indicator_to_db("NY.GDP.PCAP.CD", "BRA", 2024)
 save_indicator_to_db("NY.GDP.PCAP.CD", "AUS", 2024)
-save_indicator_to_db("NY.GDP PCAP.CD", "DEU", 2024)
+save_indicator_to_db("NY.GDP.PCAP.CD", "DEU", 2024)
 
 print_economic_data()
