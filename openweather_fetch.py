@@ -23,7 +23,7 @@ DATABASE_PATH = "final_data.db"
 
 # List of cities to collect data from
 # Format: (city_name, country_code)
-# These are the exact cities chosen by the team
+# 96 cities across 32 countries for comprehensive spatial coverage
 CITIES_TO_COLLECT = [
     # USA (3 cities)
     ("Washington", "US"),  # Washington DC
@@ -53,12 +53,147 @@ CITIES_TO_COLLECT = [
     # Australia (3 cities)
     ("Canberra", "AU"),
     ("Melbourne", "AU"),
-    ("Sydney", "AU"),
+    ("Sydney", "AU"),  # "City" in your list likely means Sydney
     
     # Germany (3 cities)
     ("Berlin", "DE"),
     ("Munich", "DE"),
     ("Hamburg", "DE"),
+    
+    # South Africa (3 cities)
+    ("Johannesburg", "ZA"),
+    ("Cape Town", "ZA"),
+    ("Pretoria", "ZA"),
+    
+    # Sweden (3 cities)
+    ("Stockholm", "SE"),
+    ("Gothenburg", "SE"),
+    ("Uppsala", "SE"),
+    
+    # Russia (3 cities)
+    ("Moscow", "RU"),
+    ("Saint Petersburg", "RU"),
+    ("Samara", "RU"),
+    
+    # Pakistan (3 cities)
+    ("Karachi", "PK"),
+    ("Lahore", "PK"),
+    ("Multan", "PK"),
+    
+    # Spain (3 cities)
+    ("Barcelona", "ES"),
+    ("Madrid", "ES"),
+    ("Seville", "ES"),
+    
+    # Thailand (3 cities)
+    ("Bangkok", "TH"),
+    ("Chiang Mai", "TH"),
+    ("Pattaya", "TH"),
+    
+    # Japan (3 cities)
+    ("Tokyo", "JP"),
+    ("Sapporo", "JP"),
+    ("Osaka", "JP"),
+    
+    # France (3 cities)
+    ("Paris", "FR"),
+    ("Lyon", "FR"),
+    ("Marseille", "FR"),
+    
+    # Italy (3 cities)
+    ("Rome", "IT"),
+    ("Milan", "IT"),
+    ("Florence", "IT"),
+    
+    # Canada (3 cities)
+    ("Toronto", "CA"),
+    ("Vancouver", "CA"),
+    ("Montreal", "CA"),
+    
+    # Mexico (3 cities)
+    ("Mexico City", "MX"),
+    ("Guadalajara", "MX"),
+    ("Monterrey", "MX"),
+    
+    # Argentina (3 cities)
+    ("Buenos Aires", "AR"),
+    ("Córdoba", "AR"),
+    ("Rosario", "AR"),
+    
+    # South Korea (3 cities)
+    ("Seoul", "KR"),
+    ("Busan", "KR"),
+    ("Incheon", "KR"),
+    
+    # Turkey (3 cities)
+    ("Istanbul", "TR"),
+    ("Ankara", "TR"),
+    ("Izmir", "TR"),
+    
+    # Egypt (3 cities)
+    ("Cairo", "EG"),
+    ("Alexandria", "EG"),
+    ("Giza", "EG"),
+    
+    # Indonesia (3 cities)
+    ("Jakarta", "ID"),
+    ("Surabaya", "ID"),
+    ("Bandung", "ID"),
+    
+    # Saudi Arabia (3 cities)
+    ("Riyadh", "SA"),
+    ("Jeddah", "SA"),
+    ("Dammam", "SA"),
+    
+    # Qatar (3 cities)
+    ("Doha", "QA"),
+    ("Al Rayyan", "QA"),
+    ("Al Wakrah", "QA"),
+    
+    # Netherlands (3 cities)
+    ("Amsterdam", "NL"),
+    ("Rotterdam", "NL"),
+    ("The Hague", "NL"),
+    
+    # Belgium (3 cities)
+    ("Brussels", "BE"),
+    ("Antwerp", "BE"),
+    ("Ghent", "BE"),
+    
+    # Norway (3 cities)
+    ("Oslo", "NO"),
+    ("Bergen", "NO"),
+    ("Stavanger", "NO"),
+    
+    # Switzerland (3 cities)
+    ("Zurich", "CH"),
+    ("Geneva", "CH"),
+    ("Basel", "CH"),
+    
+    # Poland (3 cities)
+    ("Warsaw", "PL"),
+    ("Kraków", "PL"),
+    ("Gdańsk", "PL"),
+    
+    # Greece (3 cities)
+    ("Athens", "GR"),
+    ("Thessaloniki", "GR"),
+    ("Patras", "GR"),
+    
+    # Portugal (3 cities)
+    ("Lisbon", "PT"),
+    ("Porto", "PT"),
+    ("Braga", "PT"),
+    
+    # Vietnam (3 cities)
+    ("Hanoi", "VN"),
+    ("Ho Chi Minh City", "VN"),
+    ("Da Nang", "VN"),
+
+    # Kenya (3 cities)
+    ("Nairobi", "KE"),
+    ("Mombasa", "KE"),
+    ("Kisumu", "KE"),
 ]
 
 # Country information with both 2-letter and 3-letter codes
@@ -72,6 +207,33 @@ COUNTRY_INFO = {
     "BR": {"name": "Brazil", "iso3": "BRA"},
     "AU": {"name": "Australia", "iso3": "AUS"},
     "DE": {"name": "Germany", "iso3": "DEU"},
+    "ZA": {"name": "South Africa", "iso3": "ZAF"},
+    "SE": {"name": "Sweden", "iso3": "SWE"},
+    "RU": {"name": "Russia", "iso3": "RUS"},
+    "PK": {"name": "Pakistan", "iso3": "PAK"},
+    "ES": {"name": "Spain", "iso3": "ESP"},
+    "TH": {"name": "Thailand", "iso3": "THA"},
+    "JP": {"name": "Japan", "iso3": "JPN"},
+    "FR": {"name": "France", "iso3": "FRA"},
+    "IT": {"name": "Italy", "iso3": "ITA"},
+    "CA": {"name": "Canada", "iso3": "CAN"},
+    "MX": {"name": "Mexico", "iso3": "MEX"},
+    "AR": {"name": "Argentina", "iso3": "ARG"},
+    "KR": {"name": "South Korea", "iso3": "KOR"},
+    "TR": {"name": "Turkey", "iso3": "TUR"},
+    "EG": {"name": "Egypt", "iso3": "EGY"},
+    "ID": {"name": "Indonesia", "iso3": "IDN"},
+    "SA": {"name": "Saudi Arabia", "iso3": "SAU"},
+    "QA": {"name": "Qatar", "iso3": "QAT"},
+    "NL": {"name": "Netherlands", "iso3": "NLD"},
+    "BE": {"name": "Belgium", "iso3": "BEL"},
+    "NO": {"name": "Norway", "iso3": "NOR"},
+    "CH": {"name": "Switzerland", "iso3": "CHE"},
+    "PL": {"name": "Poland", "iso3": "POL"},
+    "GR": {"name": "Greece", "iso3": "GRC"},
+    "PT": {"name": "Portugal", "iso3": "PRT"},
+    "VN": {"name": "Vietnam", "iso3": "VNM"},
+    "KE": {"name": "Kenya", "iso3": "KEN"}
 }
 
 
@@ -325,19 +487,9 @@ def main():
     existing_count = cursor.fetchone()[0]
     print(f"Current weather data records in database: {existing_count}")
     
-    # Determine how many more items we need to collect
-    target_total = 100
-    items_needed = target_total - existing_count
-    items_to_collect_this_run = min(25, items_needed)
-    
-    if items_to_collect_this_run <= 0:
-        print(f"✓ Already have {existing_count} records (target: {target_total})")
-        print("✓ No more data collection needed!")
-        conn.close()
-        return
-    
-    print(f"Target: {target_total} total records")
-    print(f"Will collect: {items_to_collect_this_run} new records this run")
+    # How many items to collect this run (fixed cap, no total target)
+    items_to_collect_this_run = 25
+    print(f"Will collect up to {items_to_collect_this_run} new records this run (if available).")
     print()
     print("-" * 60)
     print()
@@ -384,33 +536,21 @@ def main():
             print("✗ Duplicate (skipped)")
     
     # Final summary
+     # Final summary
     print()
     print("-" * 60)
     print()
     cursor.execute('SELECT COUNT(*) FROM weather_data')
     final_count = cursor.fetchone()[0]
-    print(f"✓ Data collection complete!")
+    print("✓ Data collection complete!")
     print(f"  - New records added this run: {items_collected}")
     print(f"  - Total records in database: {final_count}")
-    print(f"  - Target: {target_total} records")
-    
-    if final_count >= target_total:
-        print(f"  - ✓ TARGET REACHED! You have enough data.")
-    else:
-        remaining = target_total - final_count
-        runs_needed = (remaining + 24) // 25  # Round up
-        print(f"  - Still need: {remaining} more records")
-        print(f"  - Estimated runs needed: {runs_needed}")
     
     # Close database connection
     conn.close()
     print()
     print("=" * 60)
 
-
-# ============================================================================
-# RUN THE SCRIPT
-# ============================================================================
 
 if __name__ == "__main__":
     main()
