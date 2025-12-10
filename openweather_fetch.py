@@ -1,3 +1,12 @@
+"""
+SI 201 Final Project - OpenWeather Data Collection
+Member 1's File: openweather_fetch.py
+
+This script fetches weather data from OpenWeather API and stores it in SQLite database.
+It creates all database tables and manages the countries lookup table.
+
+Run this script 4 times to collect 100+ weather data points (25 cities per run).
+"""
 
 import requests
 import sqlite3
@@ -52,15 +61,17 @@ CITIES_TO_COLLECT = [
     ("Hamburg", "DE"),
 ]
 
-# Full country names for each country code
-COUNTRY_NAMES = {
-    "US": "United States",
-    "IN": "India",
-    "CN": "China",
-    "GB": "United Kingdom",
-    "BR": "Brazil",
-    "AU": "Australia",
-    "DE": "Germany",
+# Country information with both 2-letter and 3-letter codes
+# 2-letter codes: Used by OpenWeather and OpenAQ APIs
+# 3-letter codes: Used by World Bank API
+COUNTRY_INFO = {
+    "US": {"name": "United States", "iso3": "USA"},
+    "IN": {"name": "India", "iso3": "IND"},
+    "CN": {"name": "China", "iso3": "CHN"},
+    "GB": {"name": "United Kingdom", "iso3": "GBR"},
+    "BR": {"name": "Brazil", "iso3": "BRA"},
+    "AU": {"name": "Australia", "iso3": "AUS"},
+    "DE": {"name": "Germany", "iso3": "DEU"},
 }
 
 
@@ -83,6 +94,7 @@ def create_database_tables(conn):
         CREATE TABLE IF NOT EXISTS countries (
             country_id INTEGER PRIMARY KEY AUTOINCREMENT,
             country_code TEXT UNIQUE NOT NULL,
+            country_code_3 TEXT UNIQUE NOT NULL,
             country_name TEXT NOT NULL
         )
     ''')
@@ -142,20 +154,21 @@ def create_database_tables(conn):
 # FUNCTION 2: Get or Create Country ID
 # ============================================================================
 
-def get_or_create_country_id(conn, country_code, country_name):
+def get_or_create_country_id(conn, country_code, country_name, country_code_3=None):
     """
     Looks up country in countries table; if not found, creates it.
     
     Input:
         - conn: SQLite connection
-        - country_code: str (e.g., "US")
+        - country_code: str (2-letter code, e.g., "US")
         - country_name: str (e.g., "United States")
+        - country_code_3: str (3-letter code, e.g., "USA") - optional
     Output: int (country_id)
     Purpose: Ensures no duplicate countries and returns the country_id
     """
     cursor = conn.cursor()
     
-    # Try to find existing country
+    # Try to find existing country by 2-letter code
     cursor.execute(
         'SELECT country_id FROM countries WHERE country_code = ?',
         (country_code,)
@@ -167,9 +180,13 @@ def get_or_create_country_id(conn, country_code, country_name):
         return result[0]
     else:
         # Country doesn't exist, create it
+        # If 3-letter code not provided, use 2-letter code as fallback
+        if country_code_3 is None:
+            country_code_3 = country_code
+            
         cursor.execute(
-            'INSERT INTO countries (country_code, country_name) VALUES (?, ?)',
-            (country_code, country_name)
+            'INSERT INTO countries (country_code, country_code_3, country_name) VALUES (?, ?, ?)',
+            (country_code, country_code_3, country_name)
         )
         conn.commit()
         return cursor.lastrowid
@@ -350,8 +367,10 @@ def main():
             continue
         
         # Get or create country in database
-        country_name = COUNTRY_NAMES.get(country_code, country_code)
-        country_id = get_or_create_country_id(conn, country_code, country_name)
+        country_info = COUNTRY_INFO.get(country_code, {})
+        country_name = country_info.get("name", country_code)
+        country_code_3 = country_info.get("iso3", country_code)
+        country_id = get_or_create_country_id(conn, country_code, country_name, country_code_3)
         
         # Store weather data
         inserted = store_weather_data(conn, country_id, weather_data)
