@@ -159,6 +159,7 @@ def print_economic_data():
 
 create_economic_table()
 
+save_indicator_to_db("NY.GDP.PCAP.CD", "USA", 2024)
 save_indicator_to_db("NY.GDP.PCAP.CD", "IND", 2024)
 save_indicator_to_db("NY.GDP.PCAP.CD", "CHN", 2024)
 save_indicator_to_db("NY.GDP.PCAP.CD", "GBR", 2024)
