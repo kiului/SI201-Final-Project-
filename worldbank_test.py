@@ -1,6 +1,11 @@
 
 import requests
 import json
+import requests
+import sqlite3
+import json
+from datetime import datetime
+
 
 # Example endpoint: GDP per capita (NY.GDP.PCAP.CD) for all countries
 BASE_URL = "https://api.worldbank.org/v2/country/all/indicator/NY.GDP.PCAP.CD"
@@ -44,12 +49,12 @@ def fetch_indicator(indicator_id, country_code, year):
 
     data = response.json()
     
-    # World Bank API always returns: data[0] = metadata, data[1] = actual results
-    # If data[1] is missing, return empty list
+    # World Bank API has data[0] = metadata, data[1] = actual results
+    # data[1] contains the actual indicator entries
     if not data or len(data) < 2:
         return []
     
-     # Extract the list of indicator records
+    # Extract only the data we use 
     entries = data[1]
 
     results = []
@@ -62,7 +67,7 @@ def fetch_indicator(indicator_id, country_code, year):
             cleaned = {
                 "country_name": item["country"]["value"],
                 "country_code": item["countryiso3code"],
-                "indicator_id": item["country"]["id"],
+                "indicator_id": item["indicator"]["id"],
                 "indicator_name": item["indicator"]["value"],
                 "year": int(item["date"]),
                 "value": item["value"]
@@ -79,3 +84,5 @@ print(fetch_indicator("NY.GDP.PCAP.CD", "GBR", 2024))
 print(fetch_indicator("NY.GDP.PCAP.CD", "BRA", 2024))
 print(fetch_indicator("NY.GDP.PCAP.CD", "AUS", 2024))
 print(fetch_indicator("NY.GDP.PCAP.CD", "DEU", 2024))
+
+
