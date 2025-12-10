@@ -88,11 +88,13 @@ print(fetch_indicator("NY.GDP.PCAP.CD", "DEU", 2024))
 
 # create economic data table
 DB_NAME = "final_data.db"
-
 def create_economic_table():
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
 
+    cur.execute("DROP TABLE IF EXISTS economic_data") # Delete old table so we can recreate it with UNIQUE constraint
+
+    # Create table with UNIQUE constraint
     cur.execute("""
         CREATE TABLE IF NOT EXISTS economic_data (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -101,18 +103,16 @@ def create_economic_table():
             indicator_name TEXT,
             year INTEGER,
             value REAL,
-            FOREIGN KEY (country_id) REFERENCES countries(country_id)
+            FOREIGN KEY (country_id) REFERENCES countries(country_id),
+            UNIQUE (country_id, indicator_id, year)
         )
     """)
 
     conn.commit()
     conn.close()
-    print("New economic_data table created.")
+    print("New economic_data table created with UNIQUE constraint.")
 
-
-
-# get countries.country_id 
-
+# Select country_id for the matching country_code
 def get_country_id(country_code):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
@@ -126,36 +126,13 @@ def get_country_id(country_code):
         raise ValueError(f"Country code '{country_code}' not found in countries table.")
     return row[0]
 
-#insert or update table
-
+# INSERT new data row into economic_data table
 def store_economic_data(entry):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
 
     country_id = get_country_id(entry["country_code"])
 
-    # check existing row
-    cur.execute("""
-        SELECT id FROM economic_data
-        WHERE country_id = ? AND indicator_id = ? AND year = ?
-    """, (country_id, entry["indicator_id"], entry["year"]))
-
-    row = cur.fetchone()
-
-    # UPDATE if exists
-    if row:
-        cur.execute("""
-            UPDATE economic_data
-            SET value = ?, indicator_name = ?
-            WHERE id = ?
-        """, (entry["value"], entry["indicator_name"], row[0]))
-
-        conn.commit()
-        conn.close()
-        print(f"UPDATED → {entry['country_code']} {entry['year']}")
-        return
-
-    # INSERT new
     cur.execute("""
         INSERT INTO economic_data (country_id, indicator_id, indicator_name, year, value)
         VALUES (?, ?, ?, ?, ?)
@@ -174,14 +151,14 @@ def store_economic_data(entry):
 
 #main
 def save_indicator_to_db(indicator_id, country_code, year):
-    result = fetch_indicator(indicator_id, country_code, year)
+    result = fetch_indicator(indicator_id, country_code, year)  # Fetch indicator data from the API
 
     if not result:
-        print(f"No data returned for {country_code} {year}")
+        print(f"No data returned for {country_code} {year}") 
         return
 
-    entry = result[0]
-    store_economic_data(entry)
+    entry = result[0] # The API returns a list; take the first (only) item
+    store_economic_data(entry) # Insert it into the database
 
 
 
@@ -191,7 +168,7 @@ def print_economic_data():
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM economic_data")
+    cur.execute("SELECT * FROM economic_data") 
     rows = cur.fetchall()
 
     print("\n----- ECONOMIC DATA TABLE -----")
@@ -207,7 +184,7 @@ create_economic_table()
 save_indicator_to_db("NY.GDP.PCAP.CD", "USA", 2024)
 save_indicator_to_db("NY.GDP.PCAP.CD", "IND", 2024)
 save_indicator_to_db("NY.GDP.PCAP.CD", "CHN", 2024)
-save_indicator_to_db("NY.GDP.PCAP.CD", "GBR",햣  2024)
+save_indicator_to_db("NY.GDP.PCAP.CD", "GBR", 2024)
 save_indicator_to_db("NY.GDP.PCAP.CD", "BRA", 2024)
 save_indicator_to_db("NY.GDP.PCAP.CD", "AUS", 2024)
 save_indicator_to_db("NY.GDP.PCAP.CD", "DEU", 2024)
