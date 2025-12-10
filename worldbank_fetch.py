@@ -95,7 +95,8 @@ def get_country_id(country_code):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
 
-    cur.execute("SELECT country_id FROM countries WHERE country_code = ?", (country_code,))
+    cur.execute("SELECT country_id FROM countries WHERE country_code_3 = ?", (country_code,))
+
     row = cur.fetchone()
 
     conn.close()
