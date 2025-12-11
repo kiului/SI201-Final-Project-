@@ -13,9 +13,6 @@ import sqlite3
 import json
 from datetime import datetime
 
-# ============================================================================
-# CONFIGURATION
-# ============================================================================
 
 API_KEY = "e92c3942dfe584525e4535af0db5bd23"
 BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
