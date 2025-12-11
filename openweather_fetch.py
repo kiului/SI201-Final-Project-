@@ -1,8 +1,7 @@
 """
 SI 201 Final Project - OpenWeather Data Collection
-Member 1's File: openweather_fetch.py
 
-This script fetches weather data from OpenWeather API and stores it in SQLite database.
+This code fetches weather data from OpenWeather API and stores it in SQLite database.
 It creates all database tables and manages the countries lookup table.
 
 Run this script 4 times to collect 100+ weather data points (25 cities per run).
