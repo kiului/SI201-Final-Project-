@@ -24,33 +24,58 @@ INDICATOR_ID = "NY.GDP.PCAP.CD"  # GDP per capita (current US$)
 
 # List of countries and years to collect data from
 # Format: (country_code_3, year)
-# 25 countries × 4 years = 100 data points
+# 10 countries × 10 years = 100 data points
+# Countries match those used by teammates in weather/air quality data
 DATA_TO_COLLECT = [
+    # United States - 10 years
     ("USA", 2023), ("USA", 2022), ("USA", 2021), ("USA", 2020),
+    ("USA", 2019), ("USA", 2018), ("USA", 2017), ("USA", 2016),
+    ("USA", 2015), ("USA", 2014),
+    
+    # India - 10 years
     ("IND", 2023), ("IND", 2022), ("IND", 2021), ("IND", 2020),
+    ("IND", 2019), ("IND", 2018), ("IND", 2017), ("IND", 2016),
+    ("IND", 2015), ("IND", 2014),
+    
+    # China - 10 years
     ("CHN", 2023), ("CHN", 2022), ("CHN", 2021), ("CHN", 2020),
+    ("CHN", 2019), ("CHN", 2018), ("CHN", 2017), ("CHN", 2016),
+    ("CHN", 2015), ("CHN", 2014),
+    
+    # United Kingdom - 10 years
     ("GBR", 2023), ("GBR", 2022), ("GBR", 2021), ("GBR", 2020),
+    ("GBR", 2019), ("GBR", 2018), ("GBR", 2017), ("GBR", 2016),
+    ("GBR", 2015), ("GBR", 2014),
+    
+    # Brazil - 10 years
     ("BRA", 2023), ("BRA", 2022), ("BRA", 2021), ("BRA", 2020),
+    ("BRA", 2019), ("BRA", 2018), ("BRA", 2017), ("BRA", 2016),
+    ("BRA", 2015), ("BRA", 2014),
+    
+    # Australia - 10 years
     ("AUS", 2023), ("AUS", 2022), ("AUS", 2021), ("AUS", 2020),
+    ("AUS", 2019), ("AUS", 2018), ("AUS", 2017), ("AUS", 2016),
+    ("AUS", 2015), ("AUS", 2014),
+    
+    # Germany - 10 years
     ("DEU", 2023), ("DEU", 2022), ("DEU", 2021), ("DEU", 2020),
+    ("DEU", 2019), ("DEU", 2018), ("DEU", 2017), ("DEU", 2016),
+    ("DEU", 2015), ("DEU", 2014),
+    
+    # Thailand - 10 years
     ("THA", 2023), ("THA", 2022), ("THA", 2021), ("THA", 2020),
+    ("THA", 2019), ("THA", 2018), ("THA", 2017), ("THA", 2016),
+    ("THA", 2015), ("THA", 2014),
+    
+    # South Korea - 10 years
     ("KOR", 2023), ("KOR", 2022), ("KOR", 2021), ("KOR", 2020),
+    ("KOR", 2019), ("KOR", 2018), ("KOR", 2017), ("KOR", 2016),
+    ("KOR", 2015), ("KOR", 2014),
+    
+    # Japan - 10 years
     ("JPN", 2023), ("JPN", 2022), ("JPN", 2021), ("JPN", 2020),
-    ("FRA", 2023), ("FRA", 2022), ("FRA", 2021), ("FRA", 2020),
-    ("CAN", 2023), ("CAN", 2022), ("CAN", 2021), ("CAN", 2020),
-    ("ITA", 2023), ("ITA", 2022), ("ITA", 2021), ("ITA", 2020),
-    ("MEX", 2023), ("MEX", 2022), ("MEX", 2021), ("MEX", 2020),
-    ("ESP", 2023), ("ESP", 2022), ("ESP", 2021), ("ESP", 2020),
-    ("NLD", 2023), ("NLD", 2022), ("NLD", 2021), ("NLD", 2020),
-    ("SAU", 2023), ("SAU", 2022), ("SAU", 2021), ("SAU", 2020),
-    ("TUR", 2023), ("TUR", 2022), ("TUR", 2021), ("TUR", 2020),
-    ("CHE", 2023), ("CHE", 2022), ("CHE", 2021), ("CHE", 2020),
-    ("POL", 2023), ("POL", 2022), ("POL", 2021), ("POL", 2020),
-    ("BEL", 2023), ("BEL", 2022), ("BEL", 2021), ("BEL", 2020),
-    ("SWE", 2023), ("SWE", 2022), ("SWE", 2021), ("SWE", 2020),
-    ("ARG", 2023), ("ARG", 2022), ("ARG", 2021), ("ARG", 2020),
-    ("NOR", 2023), ("NOR", 2022), ("NOR", 2021), ("NOR", 2020),
-    ("AUT", 2023), ("AUT", 2022), ("AUT", 2021), ("AUT", 2020),
+    ("JPN", 2019), ("JPN", 2018), ("JPN", 2017), ("JPN", 2016),
+    ("JPN", 2015), ("JPN", 2014),
 ]
 
 
