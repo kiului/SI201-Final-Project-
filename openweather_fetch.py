@@ -25,55 +25,125 @@ DATABASE_PATH = "final_data.db"
 # Format: (city_name, country_code)
 # 96 cities across 32 countries for comprehensive spatial coverage
 CITIES_TO_COLLECT = [
-    # USA (3 cities)
-    ("Washington", "US"),  # Washington DC
+    # United States (10)
+    ("Boston", "US"),  # Washington DC
     ("New York", "US"),
     ("Los Angeles", "US"),
-    
-    # India (3 cities)
+    ("Chicago", "US"),
+    ("Houston", "US"),
+    ("Phoenix", "US"),
+    ("Philadelphia", "US"),
+    ("San Antonio", "US"),
+    ("San Diego", "US"),
+    ("Dallas", "US"),
+
+    # India (10)
     ("New Delhi", "IN"),
     ("Mumbai", "IN"),
+    ("Bangalore", "IN"),
+    ("Kolkata", "IN"),
+    ("Chennai", "IN"),
+    ("Hyderabad", "IN"),
+    ("Pune", "IN"),
     ("Jaipur", "IN"),
-    
-    # China (3 cities)
+    ("Ahmedabad", "IN"),
+    ("Lucknow", "IN"),
+
+    # China (10)
     ("Beijing", "CN"),
     ("Shanghai", "CN"),
     ("Shenzhen", "CN"),
-    
-    # United Kingdom (3 cities)
+    ("Guangzhou", "CN"),
+    ("Chengdu", "CN"),
+    ("Chongqing", "CN"),
+    ("Wuhan", "CN"),
+    ("Nanjing", "CN"),
+    ("Tianjin", "CN"),
+    ("Hangzhou", "CN"),
+
+    # United Kingdom (10)
     ("London", "GB"),
     ("Manchester", "GB"),
+    ("Birmingham", "GB"),
+    ("Liverpool", "GB"),
+    ("Leeds", "GB"),
+    ("Glasgow", "GB"),
+    ("Edinburgh", "GB"),
     ("Bristol", "GB"),
-    
-    # Brazil (3 cities)
-    ("São Paulo", "BR"),
+    ("Sheffield", "GB"),
+    ("Newcastle", "GB"),
+
+    # Brazil (10)
+    ("Sao Paulo", "BR"),
     ("Rio de Janeiro", "BR"),
-    ("Brasília", "BR"),
-    
-    # Australia (3 cities)
-    ("Canberra", "AU"),
+    ("Brasilia", "BR"),
+    ("Salvador", "BR"),
+    ("Fortaleza", "BR"),
+    ("Belo Horizonte", "BR"),
+    ("Curitiba", "BR"),
+    ("Manaus", "BR"),
+    ("Recife", "BR"),
+    ("Porto Alegre", "BR"),
+
+    # Australia (10)
+    ("Sydney", "AU"),
     ("Melbourne", "AU"),
-    ("Sydney", "AU"),  # "City" in your list likely means Sydney
-    
-    # Germany (3 cities)
+    ("Brisbane", "AU"),
+    ("Perth", "AU"),
+    ("Adelaide", "AU"),
+    ("Canberra", "AU"),
+    ("Hobart", "AU"),
+    ("Darwin", "AU"),
+    ("Gold Coast", "AU"),
+    ("Cairns", "AU"),
+
+    # Germany (10)
     ("Berlin", "DE"),
     ("Munich", "DE"),
     ("Hamburg", "DE"),
-   
-    # Thailand (3 cities)
+    ("Frankfurt", "DE"),
+    ("Cologne", "DE"),
+    ("Stuttgart", "DE"),
+    ("Dusseldorf", "DE"),
+    ("Leipzig", "DE"),
+    ("Dresden", "DE"),
+    ("Nuremberg", "DE"),
+
+    # Thailand (10)
     ("Bangkok", "TH"),
     ("Chiang Mai", "TH"),
+    ("Phuket", "TH"),
     ("Pattaya", "TH"),
-    
-    # Japan (3 cities)
+    ("Chiang Rai", "TH"),
+    ("Hat Yai", "TH"),
+    ("Khon Kaen", "TH"),
+    ("Nakhon Ratchasima", "TH"),
+    ("Udon Thani", "TH"),
+    ("Surat Thani", "TH"),
+
+    # Japan (10)
     ("Tokyo", "JP"),
-    ("Sapporo", "JP"),
     ("Osaka", "JP"),
-    
-    # South Korea (3 cities)
+    ("Kyoto", "JP"),
+    ("Sapporo", "JP"),
+    ("Nagoya", "JP"),
+    ("Fukuoka", "JP"),
+    ("Hiroshima", "JP"),
+    ("Sendai", "JP"),
+    ("Yokohama", "JP"),
+    ("Kobe", "JP"),
+
+    # South Korea (10)
     ("Seoul", "KR"),
     ("Busan", "KR"),
     ("Incheon", "KR"),
+    ("Daegu", "KR"),
+    ("Daejeon", "KR"),
+    ("Gwangju", "KR"),
+    ("Suwon", "KR"),
+    ("Ulsan", "KR"),
+    ("Jeonju", "KR"),
+    ("Changwon", "KR"),
 ]
 
 # Country information with both 2-letter and 3-letter codes
@@ -91,6 +161,7 @@ COUNTRY_INFO = {
     "JP": {"name": "Japan", "iso3": "JPN"},
     "KR": {"name": "South Korea", "iso3": "KOR"},
 }
+
 
 
 
