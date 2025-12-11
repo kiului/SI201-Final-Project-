@@ -8,6 +8,7 @@ It manages the economic_data table and uses the shared countries table.
 Run this script 4 times to collect 100+ economic data points (25 items per run).
 """
 
+## this code below removes indicator id and indicator name 
 import requests
 import sqlite3
 from datetime import datetime
@@ -337,15 +338,9 @@ def main():
 if __name__ == "__main__":
     main()
 
-# """
-# SI 201 Final Project - World Bank Data Collection
-# Member's File: worldbank_fetch.py
 
-# This script fetches economic data from World Bank API and stores it in SQLite database.
-# It manages the economic_data table and uses the shared countries table.
 
-# Run this script 4 times to collect 100+ economic data points (25 items per run).
-# """
+#this code contains indicator id and indicator name
 
 # import requests
 # import sqlite3
