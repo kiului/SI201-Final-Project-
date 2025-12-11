@@ -323,7 +323,7 @@ def main():
         try:
             country_id = get_country_id(conn, country_code)
         except ValueError as e:
-            print(f"✗ {e}")
+            print(f"{e}")
             continue
         
         # Store economic data
@@ -332,10 +332,10 @@ def main():
         if inserted:
             items_collected += 1
             value_str = f"${economic_data['value']:,.2f}" if economic_data['value'] else "N/A"
-            print(f"✓ Stored ({items_collected}/{items_to_collect_this_run})")
+            print(f"Stored ({items_collected}/{items_to_collect_this_run})")
             print(f"   GDP per capita: {value_str}")
         else:
-            print("✗ Duplicate (skipped)")
+            print("Duplicate (skipped)")
     
     # Final summary
     print()
@@ -343,13 +343,13 @@ def main():
     print()
     cursor.execute('SELECT COUNT(*) FROM economic_data')
     final_count = cursor.fetchone()[0]
-    print("✓ Data collection complete!")
+    print("Data collection complete!")
     print(f"  - New records added this run: {items_collected}")
     print(f"  - Total records in database: {final_count}")
     
     if final_count >= 100:
         print()
-        print("🎉 Successfully collected 100+ economic data points!")
+        print("Successfully collected 100+ economic data points!")
     else:
         remaining = 100 - final_count
         runs_needed = (remaining + 24) // 25

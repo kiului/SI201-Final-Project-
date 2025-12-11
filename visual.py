@@ -55,10 +55,13 @@ def visualization_1_temperature_bar_chart(conn, output_path='viz1_temperature.pn
     
     # Create figure
     fig, ax = plt.subplots(figsize=(10, 8))
+
+    colors = "#4A90E2"
+
+    y_pos = np.arange(len(df))
     
     # Create color gradient from blue (cold) to red (hot)
     temps = df['avg_temperature'].values
-    colors = plt.cm.RdYlBu_r(np.linspace(0.2, 0.8, len(temps)))
     
     # Create horizontal bar chart
     y_pos = np.arange(len(df))
