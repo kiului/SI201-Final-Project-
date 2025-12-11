@@ -96,7 +96,7 @@ def setup_database(conn):
 
 def fetch_locations(api_key, country_code, limit=50):
     """Gets monitoring station information for a specific country."""
-    print(f"   🔍 Fetching locations for {country_code}...", end=" ")
+    print(f"   Fetching locations for {country_code}...", end=" ")
     
     headers = {"X-API-Key": api_key}
     url = f"{BASE_URL}/locations"
@@ -120,7 +120,7 @@ def fetch_locations(api_key, country_code, limit=50):
             response = requests.get(url, headers=headers, params=params)
         
         if response.status_code != 200:
-            print(f"❌ Failed (status {response.status_code})")
+            print(f"Failed (status {response.status_code})")
             return []
         
         data = response.json()
@@ -129,7 +129,7 @@ def fetch_locations(api_key, country_code, limit=50):
         return locations
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         return []
 
 def fetch_latest_measurements(api_key, location_id):
@@ -297,26 +297,26 @@ def main():
     
     for i, (country_code, country_name) in enumerate(countries, 1):
         print(f"\n{'='*60}")
-        print(f"🌍 {country_name} ({country_code}) - {i}/{len(countries)}")
+        print(f"{country_name} ({country_code}) - {i}/{len(countries)}")
         print(f"{'='*60}")
         
         cursor.execute("SELECT country_id FROM countries WHERE country_code = ?", (country_code,))
         result = cursor.fetchone()
         
         if not result:
-            print(f"   ❌ ERROR: Country not found in database!")
+            print(f"   ERROR: Country not found in database!")
             continue
             
         country_id = result[0]
         
         if i > 1 and i % 5 == 0:
-            print(f"   ⏸️  Pausing 15 seconds to avoid rate limits...")
+            print(f"   Pausing 15 seconds to avoid rate limits...")
             time.sleep(15)
         
         locations = fetch_locations(API_KEY, country_code, limit=50)
         
         if not locations:
-            print(f"   ⚠️  No locations found, generating backup data...")
+            print(f"   No locations found, generating backup data...")
             for j in range(10):  # Generate 10 locations
                 location_info = {
                     "id": f"gen_{country_code}_{j}",
@@ -328,12 +328,12 @@ def main():
                 rows = store_air_quality_data(conn, country_id, location_info, measurements)
                 total_rows += rows
                 total_generated_data += rows
-            print(f"   ✅ Generated 30 measurements (10 locations × 3 parameters)")
+            print(f"   Generated 30 measurements (10 locations × 3 parameters)")
             countries_processed += 1
             continue
         
         # Filter and SCORE locations by how many parameters they have
-        print(f"   🔍 Prioritizing stations with multiple parameters...", end=" ")
+        print(f"   Prioritizing stations with multiple parameters...", end=" ")
         
         scored_locations = []
         for location in locations:
@@ -351,10 +351,10 @@ def main():
         print(f"✓ Found {len(good_locations)} stations")
         if scored_locations:
             best_score = scored_locations[0][0]
-            print(f"   📊 Best stations have {best_score}/3 parameters")
+            print(f"   Best stations have {best_score}/3 parameters")
         
         if not good_locations:
-            print(f"   ⚠️  No suitable locations, generating backup data...")
+            print(f"  No suitable locations, generating backup data...")
             for j in range(10):  # Generate 10 locations
                 location_info = {
                     "id": f"gen_{country_code}_{j}",
@@ -366,7 +366,7 @@ def main():
                 rows = store_air_quality_data(conn, country_id, location_info, measurements)
                 total_rows += rows
                 total_generated_data += rows
-            print(f"   ✅ Generated 30 measurements (10 locations × 3 parameters)")
+            print(f"   Generated 30 measurements (10 locations × 3 parameters)")
             countries_processed += 1
             continue
         
@@ -389,7 +389,7 @@ def main():
             measurements = fetch_latest_measurements(API_KEY, location_id)
             
             if measurements:
-                print(f"   📡 {location_name}...", end=" ")
+                print(f"    {location_name}...", end=" ")
                 rows = store_air_quality_data(conn, country_id, location, measurements)
                 total_rows += rows
                 total_real_data += rows
@@ -410,7 +410,7 @@ def main():
         # If we don't have all 3 parameters, generate backup for missing ones
         missing_params = set(['pm25', 'no2', 'o3']) - params_collected
         if missing_params and location_count > 0:
-            print(f"   📊 Generating backup data for missing: {', '.join(missing_params)}")
+            print(f"   Generating backup data for missing: {', '.join(missing_params)}")
             # Use last real location info
             last_location = good_locations[0]
             backup = []
@@ -445,8 +445,8 @@ def main():
                     'generated': True
                 })
         
-        print(f"\n   📊 Summary: {location_count} locations, {len(all_country_measurements)} measurements")
-        print(f"\n   📋 Data collected for {country_name}:")
+        print(f"\n   Summary: {location_count} locations, {len(all_country_measurements)} measurements")
+        print(f"\n   Data collected for {country_name}:")
         
         by_param = {'pm25': [], 'no2': [], 'o3': []}
         for m in all_country_measurements:
@@ -474,12 +474,12 @@ def main():
     conn.close()
     
     print(f"\n{'='*60}")
-    print(f"🎉 COLLECTION COMPLETE")
+    print(f"COLLECTION COMPLETE")
     print(f"{'='*60}")
     print(f"Countries processed: {countries_processed}/{len(countries)}")
     print(f"Total rows inserted: {total_rows}")
-    print(f"✅ Real API data: {total_real_data}")
-    print(f"📊 Generated backup data: {total_generated_data}")
+    print(f"Real API data: {total_real_data}")
+    print(f"Generated backup data: {total_generated_data}")
     
     if total_rows > 0:
         real_percentage = (total_real_data / total_rows) * 100
