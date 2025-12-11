@@ -105,12 +105,11 @@ def visualization_2_air_quality_bar_chart(conn, output_path='viz2_air_quality.pn
     query = """
     SELECT 
         c.country_name,
-        AVG(a.value) as avg_pm25
+        AVG(a.pm25_value) as avg_pm25
     FROM countries c
     JOIN air_quality_data a ON c.country_id = a.country_id
     JOIN weather_data w ON c.country_id = w.country_id
     JOIN economic_data e ON c.country_id = e.country_id
-    WHERE a.parameter = 'pm25'
     GROUP BY c.country_name
     ORDER BY avg_pm25 ASC
     """
@@ -166,14 +165,14 @@ def visualization_3_gdp_scatter(conn, output_path='viz3_gdp_vs_pollution.png'):
     query = """
     SELECT 
         c.country_name,
-        AVG(a.value) as avg_pm25,
+        AVG(a.pm25_value) as avg_pm25,
         e.value as gdp_per_capita,
         AVG(w.temperature) as avg_temperature
     FROM countries c
     JOIN air_quality_data a ON c.country_id = a.country_id
     JOIN economic_data e ON c.country_id = e.country_id
     JOIN weather_data w ON c.country_id = w.country_id
-    WHERE a.parameter = 'pm25' AND e.indicator_id = 'NY.GDP.PCAP.CD'
+    WHERE e.indicator_id = 'NY.GDP.PCAP.CD'
     GROUP BY c.country_name
     """
 

@@ -64,12 +64,11 @@ def calculation_2_avg_pm25_by_country(conn):
     query = """
     SELECT 
         c.country_name,
-        AVG(a.value) as avg_pm25
+        AVG(a.pm25_value) as avg_pm25
     FROM countries c
     JOIN air_quality_data a ON c.country_id = a.country_id
     JOIN weather_data w ON c.country_id = w.country_id
     JOIN economic_data e ON c.country_id = e.country_id
-    WHERE a.parameter = 'pm25'
     GROUP BY c.country_name
     ORDER BY avg_pm25 ASC
     """
@@ -93,8 +92,7 @@ def calculation_3_gdp_per_country(conn):
     JOIN economic_data e ON c.country_id = e.country_id
     JOIN weather_data w ON c.country_id = w.country_id
     JOIN air_quality_data a ON c.country_id = a.country_id
-    WHERE e.indicator_id = 'NY.GDP.PCAP.CD'
-      AND e.year BETWEEN 2014 AND 2023
+    WHERE e.year BETWEEN 2014 AND 2023
     GROUP BY c.country_name
     ORDER BY avg_gdp_per_capita DESC;
     """
