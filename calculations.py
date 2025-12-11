@@ -80,25 +80,23 @@ def calculation_2_avg_pm25_by_country(conn):
 
 def calculation_3_gdp_per_country(conn):
     """
-    Calculation 3: GDP Per Capita by Country (2023)
+    Calculation 3: Average GDP Per Capita by Country (2013–2024)
     
-    Joins all 4 tables and gets GDP per capita for each country.
-    
-    Input: SQLite connection
-    Output: DataFrame with country_name and gdp_per_capita
-    Purpose: Compare economic prosperity across countries
+    Joins all 4 tables and calculates the average GDP per capita
+    across the selected years for each country.
     """
     query = """
     SELECT 
         c.country_name,
-        e.value as gdp_per_capita
+        ROUND(AVG(e.value), 2) AS avg_gdp_per_capita
     FROM countries c
     JOIN economic_data e ON c.country_id = e.country_id
     JOIN weather_data w ON c.country_id = w.country_id
     JOIN air_quality_data a ON c.country_id = a.country_id
     WHERE e.indicator_id = 'NY.GDP.PCAP.CD'
+      AND e.year BETWEEN 2014 AND 2023
     GROUP BY c.country_name
-    ORDER BY gdp_per_capita DESC
+    ORDER BY avg_gdp_per_capita DESC;
     """
     
     df = pd.read_sql_query(query, conn)
@@ -134,7 +132,7 @@ def write_results_to_file(df1, df2, df3, output_path='calculation_results.txt'):
         f.write("\n\n")
         
         # Calculation 3
-        f.write("CALCULATION 3: GDP Per Capita by Country (2023)\n")
+        f.write("CALCULATION 3: Average GDP Per Capita by Country (2013–2024)\n")
         f.write("-" * 70 + "\n")
         f.write(df3.to_string(index=False))
         f.write("\n\n")

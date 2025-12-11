@@ -31,19 +31,19 @@ United Kingdom   9.000000
          China  98.100000
          India 355.485714
 
-CALCULATION 3: GDP Per Capita by Country (2023)
+CALCULATION 3: Average GDP Per Capita by Country (2013–2024)
 ----------------------------------------------------------------------
-  country_name  gdp_per_capita
- United States    82304.620427
-     Australia    64835.919975
-       Germany    53940.407345
-United Kingdom    49200.810153
-   South Korea    33836.175627
-         Japan    33121.371289
-         China    12951.178240
-        Brazil    10377.589279
-      Thailand     7195.101309
-         India     2530.120313
+  country_name  avg_gdp_per_capita
+ United States            65400.53
+     Australia            57747.42
+       Germany            47914.04
+United Kingdom            44273.24
+   South Korea            37983.78
+         Japan            31658.40
+         China            10305.62
+        Brazil             9316.41
+      Thailand             6658.95
+         India             1982.74
 
 ======================================================================
 End of Results

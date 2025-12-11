@@ -119,7 +119,7 @@ def create_economic_table(conn):
             )
         """)
     else:
-        print("✓ Economic_data table already exists with UNIQUE constraint")
+        print("Economic_data table already exists with UNIQUE constraint")
     
     conn.commit()
 
@@ -179,7 +179,7 @@ def fetch_indicator(indicator_id, country_code, year):
         response = requests.get(url, params=params)
         
         if response.status_code != 200:
-            print(f"✗ Request failed for {country_code}: Status {response.status_code}")
+            print(f"Request failed for {country_code}: Status {response.status_code}")
             return None
         
         data = response.json()
@@ -205,7 +205,7 @@ def fetch_indicator(indicator_id, country_code, year):
         return None
         
     except Exception as e:
-        print(f"✗ Exception fetching data for {country_code} {year}: {e}")
+        print(f"Exception fetching data for {country_code} {year}: {e}")
         return None
 
 
