@@ -98,7 +98,7 @@ def create_economic_table(conn):
     # If table doesn't exist OR doesn't have UNIQUE constraint, recreate it
     if result is None or 'UNIQUE' not in result[0]:
         cursor.execute("DROP TABLE IF EXISTS economic_data")
-        print("✓ Recreating economic_data table with UNIQUE constraint")
+        print(" Recreating economic_data table with UNIQUE constraint")
         
         cursor.execute("""
             CREATE TABLE economic_data (
@@ -113,7 +113,7 @@ def create_economic_table(conn):
             )
         """)
     else:
-        print("✓ Economic_data table already exists with UNIQUE constraint")
+        print(" Economic_data table already exists with UNIQUE constraint")
     
     conn.commit()
 
@@ -255,7 +255,7 @@ def main():
     
     # Connect to database
     conn = sqlite3.connect(DATABASE_PATH)
-    print(f"✓ Connected to database: {DATABASE_PATH}")
+    print(f" Connected to database: {DATABASE_PATH}")
     
     # Create economic_data table
     create_economic_table(conn)
@@ -334,7 +334,7 @@ def main():
     
     if final_count >= 100:
         print()
-        print("Successfully collected 100+ economic data points!")
+        print("Successfully collected 100+ economic data points")
     else:
         remaining = 100 - final_count
         runs_needed = (remaining + 24) // 25
