@@ -14,7 +14,7 @@ def fetch_indicator(indicator_id, country_code, year):
 
     params = {
         "format": "json",
-        "per_page": 50,   # how many results per page (max 50)
+        "per_page": 25,   # how many results per page (max 25)
         "page": 1
     }
 
@@ -169,3 +169,5 @@ save_indicator_to_db("NY.GDP.PCAP.CD", "DEU", 2024)   # Germany
 save_indicator_to_db("NY.GDP.PCAP.CD", "THA", 2024)   # Thailand
 save_indicator_to_db("NY.GDP.PCAP.CD", "KOR", 2024)   # South Korea
 save_indicator_to_db("NY.GDP.PCAP.CD", "JPN", 2024)   # Japan
+
+
