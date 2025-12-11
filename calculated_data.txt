@@ -1,0 +1,68 @@
+================================================================================
+SI 201 FINAL PROJECT - CALCULATED DATA RESULTS
+Generated: 2025-12-10 22:45:16
+================================================================================
+
+CALCULATION 1: Average Temperature by Country
+--------------------------------------------------------------------------------
+Country              Avg Temp (°C)   # Cities  
+--------------------------------------------------------------------------------
+Australia            26.6            10        
+Brazil               23.94           10        
+Thailand             23.8            10        
+India                15.95           10        
+China                13.95           10        
+United States        11.21           10        
+Japan                10.29           10        
+South Korea          9.53            10        
+Germany              8.59            10        
+United Kingdom       8.51            10        
+
+
+CALCULATION 2: Average PM2.5 Pollution by Country
+--------------------------------------------------------------------------------
+Country              Avg PM2.5 (µg/m³)    # Measurements 
+--------------------------------------------------------------------------------
+India                167.2                5              
+China                99.0                 9              
+United States        5.18                 13             
+
+
+CALCULATION 3: Average GDP per Capita by Country (2014-2023)
+--------------------------------------------------------------------------------
+Country              Avg GDP per Capita ($)    # Years   
+--------------------------------------------------------------------------------
+United States        $           73,968.61 4         
+Australia            $           60,558.06 4         
+Germany              $           50,817.99 4         
+United Kingdom       $           45,648.77 4         
+Japan                $           37,006.28 4         
+South Korea          $           33,090.72 4         
+China                $           12,359.17 4         
+Brazil               $            8,676.41 4         
+Thailand             $            7,036.83 4         
+India                $            2,256.06 4         
+
+
+CALCULATION 4: Combined Analysis (All Tables with Multiple Joins)
+--------------------------------------------------------------------------------
+Country         Avg Temp     Avg PM2.5    Avg GDP             
+--------------------------------------------------------------------------------
+China           13.95        99.0         $      12,359.17
+India           15.95        167.2        $       2,256.06
+United States   11.21        5.18         $      73,968.61
+
+
+CALCULATION 5: Pollution Parameter Distribution by Country
+--------------------------------------------------------------------------------
+Country              Parameter    Count      Avg Value      
+--------------------------------------------------------------------------------
+China                no2          8          23.13          
+China                o3           8          62.75          
+China                pm25         9          99.0           
+India                no2          4          10.72          
+India                o3           3          103.43         
+India                pm25         5          167.2          
+United States        pm25         13         5.18           
+
+================================================================================
