@@ -71,7 +71,7 @@ CITIES_TO_COLLECT = [
     ("Edinburgh", "GB"),
     ("Bristol", "GB"),
     ("Sheffield", "GB"),
-    ("Newcastle", "GB"),
+    ("Southampton", "GB"),
 
     # Brazil (10)
     ("Sao Paulo", "BR"),
@@ -392,7 +392,7 @@ def main():
     
     # Connect to database
     conn = sqlite3.connect(DATABASE_PATH)
-    print(f"✓ Connected to database: {DATABASE_PATH}")
+    print(f" Connected to database: {DATABASE_PATH}")
     
     # Create all tables
     create_database_tables(conn)
@@ -446,7 +446,7 @@ def main():
         
         if inserted:
             items_collected += 1
-            print(f"✓ Stored ({items_collected}/{items_to_collect_this_run})")
+            print(f" Stored ({items_collected}/{items_to_collect_this_run})")
             print(f"   Temperature: {weather_data['temperature']}°C, "
                   f"Humidity: {weather_data['humidity']}%")
         else:
@@ -459,7 +459,7 @@ def main():
     print()
     cursor.execute('SELECT COUNT(*) FROM weather_data')
     final_count = cursor.fetchone()[0]
-    print("✓ Data collection complete!")
+    print(" Data collection complete!")
     print(f"  - New records added this run: {items_collected}")
     print(f"  - Total records in database: {final_count}")
     
