@@ -334,7 +334,7 @@ def main():
     print(f"Current weather data records in database: {existing_count}")
     
     # How many items to collect this run (fixed cap, no total target)
-    items_to_collect_this_run = 25
+    items_to_collect_this_run = len(CITIES_TO_COLLECT)
     print(f"Will collect up to {items_to_collect_this_run} new records this run (if available).")
     print()
     print("-" * 60)
