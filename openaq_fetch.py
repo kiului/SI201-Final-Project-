@@ -5,12 +5,11 @@ import time
 import random
 from datetime import datetime
 
-API_KEY = "b93b8a75a83fd2286b29961a532025b2f7532f865f0071530fef3b14dccf2a24"   # ← put your real key here
+API_KEY = "b93b8a75a83fd2286b29961a532025b2f7532f865f0071530fef3b14dccf2a24"   
 
-#BASE_URL = "https://api.openaq.org/v3/locations/2178"  # example location ID
+#BASE_URL = "https://api.openaq.org/v3/locations/2178"  
 
 
-# Correct base URL per your project plan
 BASE_URL = "https://api.openaq.org/v3"
 
 
@@ -34,7 +33,7 @@ BASE_URL = "https://api.openaq.org/v3"
     #data = response.json()
     #print(json.dumps(data, indent=4))
 
-print("=== Script started ===")
+
 
 def check_countries_table_structure(conn):
     """Check the structure of countries table and return the ID column name."""
@@ -43,7 +42,7 @@ def check_countries_table_structure(conn):
     columns = cursor.fetchall()
     column_names = [col[1] for col in columns]
     
-    print(f"   📋 Countries table columns: {column_names}")
+    print(f"    Countries table columns: {column_names}")
     
     if 'id' in column_names:
         return 'id'
@@ -51,7 +50,7 @@ def check_countries_table_structure(conn):
         print("   → Using 'country_id' instead of 'id'")
         return 'country_id'
     else:
-        print(f"   ⚠️  ERROR: No ID column found in countries table!")
+        print(f"     ERROR: No ID column found in countries table!")
         return None
 
 def check_air_quality_table_structure(conn):
@@ -61,7 +60,7 @@ def check_air_quality_table_structure(conn):
     columns = cursor.fetchall()
     column_names = [col[1] for col in columns]
     
-    print(f"   📋 Air quality table columns: {column_names}")
+    print(f"    Air quality table columns: {column_names}")
     return column_names
 
 def setup_database(conn):
@@ -72,7 +71,7 @@ def setup_database(conn):
     table_exists = cursor.fetchone() is not None
     
     if not table_exists:
-        print("   ⚠️  Countries table doesn't exist - creating it...")
+        print("     Countries table doesn't exist - creating it...")
         cursor.execute("""
             CREATE TABLE countries (
                 country_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -95,15 +94,15 @@ def setup_database(conn):
             cursor.execute("INSERT INTO countries (country_code, country_name) VALUES (?, ?)", (code, name))
         
         conn.commit()
-        print(f"   ✓ Countries table created")
+        print(f"    Countries table created")
     else:
-        print("   ✓ Countries table already exists")
+        print("    Countries table already exists")
     
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='air_quality_data'")
     table_exists = cursor.fetchone() is not None
     
     if not table_exists:
-        print("   ⚠️  Air quality table doesn't exist - creating it...")
+        print("     Air quality table doesn't exist - creating it...")
         cursor.execute("""
             CREATE TABLE air_quality_data (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,9 +120,9 @@ def setup_database(conn):
             )
         """)
         conn.commit()
-        print(f"   ✓ Air quality table created")
+        print(f"    Air quality table created")
     else:
-        print("   ✓ Air quality table already exists")
+        print("    Air quality table already exists")
     
     conn.commit()
 
@@ -147,12 +146,12 @@ def get_all_stations_for_country(api_key, country_code, max_pages=3):
             response = requests.get(url, headers=headers, params=params)
             
             if response.status_code == 429:
-                print(f"   ⚠️  Rate limited, waiting...")
+                print(f"     Rate limited, waiting...")
                 time.sleep(5)
                 continue
             
             if response.status_code != 200:
-                print(f"   ⚠️  API returned status {response.status_code}")
+                print(f"     API returned status {response.status_code}")
                 break
             
             data = response.json()
@@ -168,10 +167,10 @@ def get_all_stations_for_country(api_key, country_code, max_pages=3):
             print(f"      Page {page}: found {len(results)} stations")
             
         except Exception as e:
-            print(f"   ✗ Error on page {page}: {e}")
+            print(f"    Error on page {page}: {e}")
             break
     
-    print(f"   ✓ Total {country_code} stations: {len(all_stations)}")
+    print(f"    Total {country_code} stations: {len(all_stations)}")
     return all_stations
 
 def fetch_latest_measurements(api_key, location_id):
@@ -314,7 +313,7 @@ def main():
     # Check what ID column to use
     id_column = check_countries_table_structure(conn)
     if not id_column:
-        print("\n❌ Cannot proceed - countries table structure is incorrect")
+        print("\n Cannot proceed - countries table structure is incorrect")
         conn.close()
         return
     
@@ -338,7 +337,7 @@ def main():
     
     for country_code, cities in target_cities.items():
         print(f"\n{'='*70}")
-        print(f"🌍 Processing {country_code}")
+        print(f" Processing {country_code}")
         print(f"{'='*70}")
         
         # Get country_id using the correct column name
@@ -347,7 +346,7 @@ def main():
         result = cursor.fetchone()
         
         if not result:
-            print(f"   ⚠️  Country {country_code} not found in database - skipping")
+            print(f"     Country {country_code} not found in database - skipping")
             continue
         
         country_id, country_name = result
@@ -356,7 +355,7 @@ def main():
         stations = get_all_stations_for_country(API_KEY, country_code, max_pages=2)
         
         if not stations:
-            print(f"   ⚠️  No stations found, using sample data")
+            print(f"     No stations found, using sample data")
             for i, city in enumerate(cities, 1):
                 fake_station = {
                     "id": f"sample_{country_code}_{i}",
@@ -367,7 +366,7 @@ def main():
                 # IMPORTANT: Pass air_quality_columns here!
                 rows = store_air_quality_data(conn, country_id, fake_station, city, measurements, air_quality_columns)
                 total_measurements += rows
-                print(f"   ✓ {city}: Generated {rows} measurements")
+                print(f"    {city}: Generated {rows} measurements")
         else:
             for city in cities:
                 city_station = None
@@ -392,16 +391,16 @@ def main():
                     # IMPORTANT: Pass air_quality_columns here!
                     rows = store_air_quality_data(conn, country_id, city_station, city, measurements, air_quality_columns)
                     total_measurements += rows
-                    print(f"   ✓ {city}: {len(measurements)} measurements ({source})")
+                    print(f"    {city}: {len(measurements)} measurements ({source})")
                 else:
-                    print(f"   ⚠️  {city}: No station available")
+                    print(f"     {city}: No station available")
         
         time.sleep(1)
     
     conn.close()
     
     print(f"\n{'='*70}")
-    print(f"🎉 COMPLETE")
+    print(f" COMPLETE")
     print(f"{'='*70}")
     print(f"Total measurements stored: {total_measurements}\n")
     
@@ -423,7 +422,7 @@ def main():
         ORDER BY c.country_name, a.parameter
     """)
     
-    print("📊 SUMMARY BY COUNTRY:")
+    print(" SUMMARY BY COUNTRY:")
     print("-" * 70)
     
     current_country = None
