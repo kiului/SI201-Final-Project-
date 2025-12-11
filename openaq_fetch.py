@@ -2,49 +2,53 @@ import requests
 import json
 import sqlite3
 import time
-import random
-from datetime import datetime
+from collections import defaultdict
 
 API_KEY = "b93b8a75a83fd2286b29961a532025b2f7532f865f0071530fef3b14dccf2a24"   
-
-#BASE_URL = "https://api.openaq.org/v3/locations/2178"  
-
-
 BASE_URL = "https://api.openaq.org/v3"
 
+# Fixed: Use the countries you actually want (JP, KR, TH instead of FR, ES, PL)
+REQUIRED_COUNTRIES = [
+    ("US", "United States"),
+    ("IN", "India"),
+    ("CN", "China"),
+    ("GB", "United Kingdom"),
+    ("BR", "Brazil"),
+    ("AU", "Australia"),
+    ("DE", "Germany"),
+    ("JP", "Japan"),        # Changed from FR
+    ("KR", "South Korea"),  # Changed from ES
+    ("TH", "Thailand")      # Changed from PL
+]
 
-#headers = {
-    #"X-API-Key": API_KEY
-#}
-
-# Optional: add params depending on what you want
-#params = {
-    # leave empty or add things like limit/page if the endpoint supports it
-#}
-
-#response = requests.get(BASE_URL, headers=headers, params=params)
-
-#print("Status code:", response.status_code)
-
-#if response.status_code != 200:
-   #print("Request failed:")
-    #print(response.text)
-#else:
-    #data = response.json()
-    #print(json.dumps(data, indent=4))
-
-# Parameter IDs we want
 PARAM_IDS = {
-    2: "pm25",   # PM2.5
-    3: "no2",    # NO2  
-    5: "o3"      # O3
+    2: "pm25",
+    3: "no2",
+    5: "o3"
 }
 
-# 25-ITEM LIMIT PER RUN
-MAX_ROWS_PER_RUN = 25
+MIN_DELAY = 0.5
+MAX_ROWS_PER_RUN = 25  # Added limit
+session = requests.Session()
+session.headers.update({"X-API-Key": API_KEY})
+
+def reset_database(conn):
+    """Clear all air quality data to start fresh."""
+    cursor = conn.cursor()
+    print("\nWARNING: This will delete all air quality data!")
+    response = input("Type 'YES' to confirm reset: ")
+    
+    if response == "YES":
+        cursor.execute("DELETE FROM air_quality_data")
+        conn.commit()
+        print("Database reset complete!\n")
+        return True
+    else:
+        print("Reset cancelled.\n")
+        return False
 
 def setup_database(conn):
-    """Creates tables if needed (won't drop existing data)."""
+    """Creates tables - ONE ROW PER LOCATION with all measurements."""
     cursor = conn.cursor()
     
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='countries'")
@@ -57,12 +61,20 @@ def setup_database(conn):
             )
         """)
         
-        countries = [
-            ("US", "United States"), ("IN", "India"), ("CN", "China"),
-            ("GB", "United Kingdom"), ("BR", "Brazil"), ("AU", "Australia"),
-            ("DE", "Germany"), ("TH", "Thailand"), ("KR", "South Korea"), ("JP", "Japan")
-        ]
-        cursor.executemany("INSERT OR IGNORE INTO countries (country_code, country_name) VALUES (?, ?)", countries)
+        cursor.executemany(
+            "INSERT OR IGNORE INTO countries (country_code, country_name) VALUES (?, ?)", 
+            REQUIRED_COUNTRIES
+        )
+    
+    # Check if air_quality_data exists and drop if it has old structure
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='air_quality_data'")
+    if cursor.fetchone():
+        cursor.execute("PRAGMA table_info(air_quality_data)")
+        columns = [row[1] for row in cursor.fetchall()]
+        
+        if 'parameter' in columns:
+            print("⚠️  Detected old table structure. Recreating table...")
+            cursor.execute("DROP TABLE air_quality_data")
     
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='air_quality_data'")
     if not cursor.fetchone():
@@ -75,24 +87,27 @@ def setup_database(conn):
                 city TEXT,
                 latitude REAL,
                 longitude REAL,
-                parameter TEXT,
-                value REAL,
-                unit TEXT,
+                pm25_value REAL,
+                no2_value REAL,
+                o3_value REAL,
                 datetime_utc TEXT,
                 FOREIGN KEY (country_id) REFERENCES countries(country_id)
             )
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_country_id 
+            ON air_quality_data(country_id)
         """)
     
     conn.commit()
 
 def get_current_row_count(conn):
-    """Get current number of rows in database."""
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM air_quality_data")
     return cursor.fetchone()[0]
 
 def get_country_row_counts(conn):
-    """Get how many rows each country already has."""
     cursor = conn.cursor()
     cursor.execute("""
         SELECT c.country_code, COUNT(a.id) as count
@@ -103,11 +118,9 @@ def get_country_row_counts(conn):
     """)
     return {row[0]: row[1] for row in cursor.fetchall()}
 
-def fetch_locations(api_key, country_code, limit=50):
-    """Gets monitoring station information for a specific country."""
-    headers = {"X-API-Key": api_key}
+def fetch_locations(country_code, limit=50):
+    """Gets monitoring stations."""
     url = f"{BASE_URL}/locations"
-    
     params = {
         "limit": limit,
         "page": 1,
@@ -115,76 +128,101 @@ def fetch_locations(api_key, country_code, limit=50):
     }
     
     try:
-        time.sleep(2)
-        response = requests.get(url, headers=headers, params=params)
+        time.sleep(MIN_DELAY)
+        response = session.get(url, params=params, timeout=10)
         
         if response.status_code == 429:
+            print(f"    Rate limited, waiting 10s...")
             time.sleep(10)
-            response = requests.get(url, headers=headers, params=params)
+            response = session.get(url, params=params, timeout=10)
         
-        if response.status_code != 200:
-            return []
-        
-        data = response.json()
-        return data.get("results", [])
+        if response.status_code == 200:
+            return response.json().get("results", [])
+        return []
         
     except Exception as e:
+        print(f"    Error: {e}")
         return []
 
-def fetch_latest_measurements(api_key, location_id):
-    """Gets actual pollution measurements from location's sensors."""
-    headers = {"X-API-Key": api_key}
-    sensors_url = f"{BASE_URL}/locations/{location_id}/sensors"
-    
+def fetch_latest_measurements(location_id):
+    """Gets measurements and returns them as a dict by parameter."""
     try:
-        time.sleep(1)
-        response = requests.get(sensors_url, headers=headers)
+        url = f"{BASE_URL}/locations/{location_id}/latest"
+        time.sleep(MIN_DELAY)
+        response = session.get(url, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            results = data.get("results", [])
+            
+            measurements = {}
+            datetime_utc = None
+            
+            for result in results:
+                param = result.get("parameter", {})
+                param_id = param.get("id")
+                
+                if param_id in PARAM_IDS:
+                    param_name = PARAM_IDS[param_id]
+                    measurements[param_name] = result.get("value")
+                    if not datetime_utc:
+                        datetime_utc = result.get("datetime", {}).get("utc")
+            
+            if measurements:
+                measurements['datetime'] = datetime_utc
+                return measurements
+        
+        return fetch_measurements_fallback(location_id)
+        
+    except Exception as e:
+        return {}
+
+def fetch_measurements_fallback(location_id):
+    """Fallback method using sensors endpoint."""
+    try:
+        sensors_url = f"{BASE_URL}/locations/{location_id}/sensors"
+        time.sleep(MIN_DELAY)
+        response = session.get(sensors_url, timeout=10)
         
         if response.status_code != 200:
-            return []
+            return {}
         
-        data = response.json()
-        sensors = data.get("results", [])
+        sensors = response.json().get("results", [])
+        measurements = {}
+        datetime_utc = None
         
-        measurements = []
+        relevant_sensors = [s for s in sensors 
+                          if s.get("parameter", {}).get("id") in PARAM_IDS]
         
-        for sensor in sensors:
-            param = sensor.get("parameter", {})
-            param_id = param.get("id")
-            
-            if param_id not in PARAM_IDS:
-                continue
-            
+        for sensor in relevant_sensors:
+            param_id = sensor.get("parameter", {}).get("id")
             param_name = PARAM_IDS[param_id]
             
-            time.sleep(1)
+            time.sleep(MIN_DELAY)
             latest_url = f"{BASE_URL}/sensors/{sensor.get('id')}/hours"
-            latest_params = {"limit": 1, "sort": "desc"}
-            
-            latest_resp = requests.get(latest_url, headers=headers, params=latest_params)
+            latest_resp = session.get(latest_url, 
+                                     params={"limit": 1, "sort": "desc"}, 
+                                     timeout=10)
             
             if latest_resp.status_code == 200:
-                latest_data = latest_resp.json()
-                results = latest_data.get("results", [])
-                
+                results = latest_resp.json().get("results", [])
                 if results:
                     measurement = results[0]
-                    measurements.append({
-                        "parameter": param_name,
-                        "value": measurement.get("value"),
-                        "unit": param.get("units", "µg/m³"),
-                        "datetime": measurement.get("datetime", {}).get("utc")
-                    })
+                    measurements[param_name] = measurement.get("value")
+                    if not datetime_utc:
+                        datetime_utc = measurement.get("datetime", {}).get("utc")
+        
+        if measurements:
+            measurements['datetime'] = datetime_utc
         
         return measurements
         
     except Exception as e:
-        return []
+        return {}
 
 def store_air_quality_data(conn, country_id, location_info, measurements):
-    """Stores measurements in database."""
+    """Stores ONE ROW per location with all measurements."""
     cursor = conn.cursor()
-    rows_inserted = 0
     
     location_id = location_info.get("id")
     location_name = location_info.get("name", "Unknown")
@@ -193,31 +231,29 @@ def store_air_quality_data(conn, country_id, location_info, measurements):
     longitude = coords.get("longitude")
     city = location_info.get("locality") or location_info.get("country", {}).get("name", "Unknown")
     
-    for measurement in measurements:
-        cursor.execute("""
-            INSERT INTO air_quality_data 
-            (country_id, location_id, location_name, city, latitude, longitude, 
-             parameter, value, unit, datetime_utc)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            country_id,
-            location_id,
-            location_name,
-            city,
-            latitude,
-            longitude,
-            measurement["parameter"],
-            measurement["value"],
-            measurement["unit"],
-            measurement["datetime"]
-        ))
-        rows_inserted += 1
+    cursor.execute("""
+        INSERT INTO air_quality_data 
+        (country_id, location_id, location_name, city, latitude, longitude, 
+         pm25_value, no2_value, o3_value, datetime_utc)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        country_id,
+        location_id,
+        location_name,
+        city,
+        latitude,
+        longitude,
+        measurements.get('pm25'),
+        measurements.get('no2'),
+        measurements.get('o3'),
+        measurements.get('datetime')
+    ))
     
     conn.commit()
-    return rows_inserted
+    return 1
 
 def score_location(location):
-    """Score a location by how many of our target parameters it has."""
+    """Score locations by parameter availability."""
     sensors = location.get("sensors", [])
     params_available = set()
     
@@ -228,185 +264,187 @@ def score_location(location):
     
     return len(params_available)
 
-def generate_backup_measurements(country_code, location_num):
-    """Generate realistic backup measurements if API data is insufficient."""
-    ranges = {
-        "US": {"pm25": (5, 25), "no2": (10, 40), "o3": (30, 70)},
-        "IN": {"pm25": (40, 120), "no2": (30, 80), "o3": (20, 60)},
-        "CN": {"pm25": (30, 100), "no2": (25, 70), "o3": (25, 65)},
-        "GB": {"pm25": (8, 30), "no2": (20, 50), "o3": (35, 75)},
-        "BR": {"pm25": (10, 35), "no2": (15, 45), "o3": (25, 65)},
-        "AU": {"pm25": (5, 20), "no2": (10, 35), "o3": (30, 70)},
-        "DE": {"pm25": (10, 30), "no2": (20, 50), "o3": (35, 75)},
-        "TH": {"pm25": (25, 65), "no2": (20, 55), "o3": (25, 60)},
-        "KR": {"pm25": (20, 55), "no2": (25, 60), "o3": (30, 70)},
-        "JP": {"pm25": (10, 35), "no2": (20, 50), "o3": (30, 70)}
-    }
+def print_collection_summary(country_stats):
+    """Print detailed statistics for this run."""
+    print(f"\n{'='*60}")
+    print(f"COLLECTION SUMMARY - THIS RUN")
+    print(f"{'='*60}")
     
-    country_ranges = ranges.get(country_code, {"pm25": (10, 50), "no2": (15, 55), "o3": (30, 70)})
-    
-    measurements = []
-    for param in ["pm25", "no2", "o3"]:
-        min_val, max_val = country_ranges[param]
-        value = round(random.uniform(min_val, max_val), 2)
+    for country_code, stats in country_stats.items():
+        country_name = dict(REQUIRED_COUNTRIES).get(country_code, country_code)
+        total = stats['locations']
         
-        day = (location_num % 10) + 1
-        hour = random.randint(0, 23)
-        minute = random.randint(0, 59)
-        timestamp = f"2024-12-{day:02d}T{hour:02d}:{minute:02d}:00Z"
-        
-        measurements.append({
-            "parameter": param,
-            "value": value,
-            "unit": "µg/m³",
-            "datetime": timestamp
-        })
-    
-    return measurements
+        if total > 0:
+            print(f"\n{country_name} ({country_code}): {total} locations")
+            print(f"   PM2.5: {stats['pm25']} locations with data")
+            print(f"   NO2:   {stats['no2']} locations with data")
+            print(f"   O3:    {stats['o3']} locations with data")
 
 def main():
-    """Collects EXACTLY 25 rows per run."""
+    """Collects up to 25 locations per run, 10 per country max."""
     print("=" * 60)
-    print("AIR QUALITY DATA COLLECTION - 25 ROWS PER RUN")
+    print("AIR QUALITY DATA COLLECTION - BALANCED")
+    print("Collecting 10 locations from each of 10 countries")
+    print(f"Limit: {MAX_ROWS_PER_RUN} locations per run")
+    print("Target: 100 total locations (10 per country)")
     print("=" * 60)
     
     conn = sqlite3.connect('final_data.db')
     setup_database(conn)
-    cursor = conn.cursor()
     
-    # Check current status
     current_count = get_current_row_count(conn)
-    print(f"\n Current database status:")
-    print(f"   Total rows: {current_count}")
+    print(f"\nCurrent database status:")
+    print(f"   Total rows (locations): {current_count}")
     
-    if current_count >= 100:
-        print(f"\n You already have {current_count} rows (target: 100)")
-        print("   Database is complete!")
-        conn.close()
-        return
+    if current_count > 0:
+        print(f"\nYou already have {current_count} rows!")
+        print("   Do you want to reset and start fresh?")
+        choice = input("   Type 'YES' to reset, or press Enter to continue: ")
+        if choice == "YES":
+            if reset_database(conn):
+                current_count = 0
+            else:
+                conn.close()
+                return
     
-    rows_needed = min(MAX_ROWS_PER_RUN, 100 - current_count)
-    print(f"   Will add: {rows_needed} rows this run")
-    print(f"   After this run: {current_count + rows_needed} rows")
-    
-    # Get country distribution
     country_counts = get_country_row_counts(conn)
-    print(f"\n Current distribution by country:")
-    for code, count in sorted(country_counts.items(), key=lambda x: x[1]):
-        print(f"   {code}: {count} rows")
-    
-    # Prioritize countries with fewest rows
-    countries = [
-        ("US", "United States"), ("IN", "India"), ("CN", "China"),
-        ("GB", "United Kingdom"), ("BR", "Brazil"), ("AU", "Australia"),
-        ("DE", "Germany"), ("TH", "Thailand"), ("KR", "South Korea"), ("JP", "Japan")
-    ]
-    
-    # Sort countries by current count (fill least-filled countries first)
-    countries_sorted = sorted(countries, key=lambda x: country_counts.get(x[0], 0))
+    print(f"\nCurrent distribution by country:")
+    for code, count in sorted(country_counts.items()):
+        country_name = dict(REQUIRED_COUNTRIES).get(code, code)
+        print(f"   {country_name:20s} ({code}): {count:3d}/10 locations")
     
     total_rows_added = 0
+    country_stats = defaultdict(lambda: {'locations': 0, 'pm25': 0, 'no2': 0, 'o3': 0})
     
     print(f"\n{'='*60}")
-    print(f" STARTING COLLECTION (Target: {rows_needed} rows)")
+    print(f"STARTING COLLECTION (max {MAX_ROWS_PER_RUN} locations this run)")
     print(f"{'='*60}\n")
     
-    for country_code, country_name in countries_sorted:
-        if total_rows_added >= rows_needed:
-            print(f"\n Reached {rows_needed}-row limit for this run!")
+    start_time = time.time()
+    
+    # Process each country and collect up to 10 locations, respecting 25 row limit
+    for country_code, country_name in REQUIRED_COUNTRIES:
+        # Check if we've hit the per-run limit
+        if total_rows_added >= MAX_ROWS_PER_RUN:
+            print(f"\n Reached {MAX_ROWS_PER_RUN} row limit for this run.")
+            print(f"   Run the script again to continue collecting data.")
             break
         
-        print(f" {country_name} ({country_code})")
+        print(f"{'='*60}")
+        print(f"{country_name} ({country_code}) - Target: 10 locations")
+        print(f"{'='*60}")
         
-        cursor.execute("SELECT country_id FROM countries WHERE country_code = ?", (country_code,))
+        cursor = conn.cursor()
+        cursor.execute("SELECT country_id FROM countries WHERE country_code = ?", 
+                      (country_code,))
         result = cursor.fetchone()
-        
         if not result:
+            print(f"    Country not in database, skipping...\n")
             continue
-            
         country_id = result[0]
         
-        locations = fetch_locations(API_KEY, country_code, limit=50)
+        # Check how many we already have
+        cursor.execute("SELECT COUNT(*) FROM air_quality_data WHERE country_id = ?", 
+                      (country_id,))
+        existing_count = cursor.fetchone()[0]
+        
+        if existing_count >= 10:
+            print(f"   ✓ Already have {existing_count} locations, skipping\n")
+            continue
+        
+        needed = 10 - existing_count
+        # Limit by both country need and remaining run capacity
+        can_collect = min(needed, MAX_ROWS_PER_RUN - total_rows_added)
+        print(f"   Need {needed} more locations (have {existing_count})")
+        print(f"   Will collect up to {can_collect} this run (run limit: {MAX_ROWS_PER_RUN - total_rows_added} remaining)")
+        
+        locations = fetch_locations(country_code, limit=50)
         
         if not locations:
-            print(f"   ⚠️  No API locations, using backup data")
-            # Generate just enough to not exceed limit
-            rows_remaining = rows_needed - total_rows_added
-            locations_to_gen = min(3, rows_remaining // 3)
-            
-            for j in range(locations_to_gen):
-                if total_rows_added >= rows_needed:
-                    break
-                    
-                location_info = {
-                    "id": f"gen_{country_code}_{random.randint(1000, 9999)}",
-                    "name": f"{country_name} Station {j+1}",
-                    "coordinates": {"latitude": 0.0, "longitude": 0.0},
-                    "locality": country_name
-                }
-                measurements = generate_backup_measurements(country_code, j)
-                rows = store_air_quality_data(conn, country_id, location_info, measurements)
-                total_rows_added += rows
-                print(f"   ✓ Generated {rows} rows")
+            print(f"   No API locations found\n")
             continue
         
-        # Filter and score locations
-        scored_locations = []
-        for location in locations:
-            sensors = location.get("sensors", [])
-            has_target = any(s.get("parameter", {}).get("id") in PARAM_IDS for s in sensors)
-            
-            if has_target:
-                score = score_location(location)
-                scored_locations.append((score, location))
-        
+        # Score and sort locations by data availability
+        scored_locations = [(score_location(loc), loc) for loc in locations]
         scored_locations.sort(key=lambda x: x[0], reverse=True)
-        good_locations = [loc for score, loc in scored_locations]
+        good_locations = [loc for score, loc in scored_locations if score > 0]
         
         if not good_locations:
+            print(f"   No locations with target parameters\n")
             continue
         
-        # Try locations until we hit the limit
-        for j, location in enumerate(good_locations):
-            if total_rows_added >= rows_needed:
+        print(f"   Found {len(good_locations)} locations with data")
+        
+        locations_added = 0
+        
+        for location in good_locations:
+            if locations_added >= can_collect:
                 break
-                
+            
             location_id = location.get("id")
             location_name = location.get("name", "Unknown")
             
-            measurements = fetch_latest_measurements(API_KEY, location_id)
+            measurements = fetch_latest_measurements(location_id)
             
             if measurements:
-                # Only add if it won't exceed limit
-                if total_rows_added + len(measurements) <= rows_needed:
-                    rows = store_air_quality_data(conn, country_id, location, measurements)
-                    total_rows_added += rows
-                    params_found = [m['parameter'] for m in measurements]
-                    print(f"   ✓ {location_name[:40]}: +{rows} rows ({', '.join(params_found)})")
-                else:
-                    # Would exceed limit, skip this location
-                    continue
+                store_air_quality_data(conn, country_id, location, measurements)
+                locations_added += 1
+                total_rows_added += 1
+                
+                country_stats[country_code]['locations'] += 1
+                if measurements.get('pm25') is not None:
+                    country_stats[country_code]['pm25'] += 1
+                if measurements.get('no2') is not None:
+                    country_stats[country_code]['no2'] += 1
+                if measurements.get('o3') is not None:
+                    country_stats[country_code]['o3'] += 1
+                
+                params = []
+                if measurements.get('pm25') is not None:
+                    params.append('PM2.5')
+                if measurements.get('no2') is not None:
+                    params.append('NO2')
+                if measurements.get('o3') is not None:
+                    params.append('O3')
+                
+                print(f"   [{locations_added:2d}/{can_collect:2d}] {location_name[:40]:40s} [{', '.join(params)}]")
+                
+                # Check if we've hit the run limit
+                if total_rows_added >= MAX_ROWS_PER_RUN:
+                    print(f"\n   Reached {MAX_ROWS_PER_RUN} row limit for this run")
+                    break
         
-        print()
+        print(f"   ✓ Collected {locations_added} locations for {country_name}\n")
     
-    conn.close()
-    
+    elapsed_time = time.time() - start_time
     final_count = current_count + total_rows_added
     
+    print_collection_summary(country_stats)
+    
+    print(f"\n{'='*60}")
+    print(f"COLLECTION COMPLETE")
     print(f"{'='*60}")
-    print(f" RUN COMPLETE")
-    print(f"{'='*60}")
-    print(f"Rows added this run: {total_rows_added}")
-    print(f"Total rows now: {final_count}")
-    print(f"Progress: {final_count}/100 ({(final_count/100)*100:.1f}%)")
+    print(f"Locations added this run: {total_rows_added}/{MAX_ROWS_PER_RUN}")
+    print(f"Total locations in DB: {final_count}/100")
+    print(f"Progress: {(final_count/100)*100:.1f}%")
+    print(f"Time elapsed: {elapsed_time:.1f} seconds")
+    
+    # Show final distribution
+    final_counts = get_country_row_counts(conn)
+    print(f"\nFinal distribution by country:")
+    for code, count in sorted(final_counts.items()):
+        country_name = dict(REQUIRED_COUNTRIES).get(code, code)
+        status = "✓ COMPLETE" if count >= 10 else f"({count}/10)"
+        print(f"   {country_name:20s} ({code}): {count:3d} locations {status}")
     
     if final_count >= 100:
-        print(f"\n TARGET REACHED! You have {final_count} rows.")
-    else:
-        runs_remaining = (100 - final_count + MAX_ROWS_PER_RUN - 1) // MAX_ROWS_PER_RUN
-        print(f"\n Run this script {runs_remaining} more time(s) to reach 100 rows")
+        print(f"\n TARGET REACHED! Database complete with 100 locations.")
+    elif total_rows_added >= MAX_ROWS_PER_RUN:
+        print(f"\n  Run limit reached. Run the script again to continue.")
     
     print("=" * 60)
+    
+    conn.close()
 
 if __name__ == "__main__":
     main()
