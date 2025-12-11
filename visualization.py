@@ -11,6 +11,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
+from adjustText import adjust_text
 
 DATABASE_PATH = "final_data.db"
 
@@ -154,19 +155,15 @@ def visualization_2_air_quality_bar_chart(conn, output_path='viz2_air_quality.pn
     print(f"✓ Visualization 2 saved to {output_path}")
     plt.close()
 
-
 def visualization_3_gdp_scatter(conn, output_path='viz3_gdp_vs_pollution.png'):
     """
-    Visualization 3: GDP vs Air Quality Scatter Plot
+    Visualization 3: GDP vs Air Quality Scatter Plot (Cleaned)
     
-    Creates a scatter plot showing relationship between wealth (GDP) and pollution (PM2.5).
-    Each country is a point, with size based on temperature.
-    
-    Input: SQLite connection, output file path
-    Output: None (saves PNG file)
-    Purpose: Analyze if richer countries have cleaner or dirtier air
+    - Dot size is constant (temperature removed)
+    - Labels automatically adjust to avoid overlapping using adjustText
+    - Coloring still based on PM2.5 levels
     """
-    # Get combined data from database
+
     query = """
     SELECT 
         c.country_name,
@@ -180,63 +177,74 @@ def visualization_3_gdp_scatter(conn, output_path='viz3_gdp_vs_pollution.png'):
     WHERE a.parameter = 'pm25' AND e.indicator_id = 'NY.GDP.PCAP.CD'
     GROUP BY c.country_name
     """
-    
+
     df = pd.read_sql_query(query, conn)
-    
-    # Create figure
+
     fig, ax = plt.subplots(figsize=(12, 8))
-    
-    # Create scatter plot with point size based on temperature
-    # Normalize temperatures for size scaling
-    sizes = ((df['avg_temperature'] - df['avg_temperature'].min()) / 
-             (df['avg_temperature'].max() - df['avg_temperature'].min()) * 300 + 100)
-    
-    # Color based on PM2.5 (green=clean, red=polluted)
-    colors = plt.cm.RdYlGn_r((df['avg_pm25'] - df['avg_pm25'].min()) / 
-                              (df['avg_pm25'].max() - df['avg_pm25'].min()))
-    
-    scatter = ax.scatter(df['gdp_per_capita'], df['avg_pm25'], 
-                        s=sizes, c=colors, alpha=0.6, edgecolors='black', linewidth=1.5)
-    
-    # Add country labels
+
+    # Constant dot size (no temperature scaling)
+    dot_size = 200
+
+    # Color points using PM2.5 gradient
+    colors = plt.cm.RdYlGn_r(
+        (df['avg_pm25'] - df['avg_pm25'].min()) /
+        (df['avg_pm25'].max() - df['avg_pm25'].min())
+    )
+
+    # Scatter plot
+    ax.scatter(
+        df['gdp_per_capita'], 
+        df['avg_pm25'], 
+        s=dot_size, 
+        c=colors,
+        alpha=0.7,
+        edgecolors='black',
+        linewidth=1.2
+    )
+
+    # Collect all label objects for adjustText
+    texts = []
     for idx, row in df.iterrows():
-        ax.annotate(row['country_name'], 
-                   (row['gdp_per_capita'], row['avg_pm25']),
-                   xytext=(5, 5), textcoords='offset points',
-                   fontsize=9, fontweight='bold',
-                   bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.3))
-    
-    # Customize chart
+        texts.append(
+            ax.text(
+                row['gdp_per_capita'], row['avg_pm25'],
+                row['country_name'],
+                fontsize=9, fontweight='bold',
+                bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.3)
+            )
+        )
+
+    # Automatically adjust overlapping labels
+    adjust_text(
+        texts,
+        expand_points=(1.2, 1.4),
+        arrowprops=dict(arrowstyle="-", color='gray', lw=0.6)
+    )
+
+    # Axis labels and title
     ax.set_xlabel('GDP Per Capita (USD)', fontsize=12, fontweight='bold')
     ax.set_ylabel('Average PM2.5 Level (µg/m³)', fontsize=12, fontweight='bold')
-    ax.set_title('GDP Per Capita vs Air Quality\n(All 10 Countries - Point Size = Temperature)', 
-                 fontsize=14, fontweight='bold', pad=20)
-    
-    # Add reference lines
-    ax.axhline(y=15, color='red', linestyle='--', linewidth=1.5, alpha=0.5, label='WHO Guideline')
+    ax.set_title(
+        'GDP Per Capita vs Air Quality (PM2.5)\nLabels Automatically Adjusted',
+        fontsize=14, fontweight='bold',
+        pad=20
+    )
+
+    # Reference line: WHO safe limit
+    ax.axhline(
+        y=15, color='red', linestyle='--', linewidth=1.3, alpha=0.6,
+        label='WHO PM2.5 Guideline (15 µg/m³)'
+    )
     ax.legend(loc='upper right', fontsize=10)
-    
-    # Add grid
+
+    # Grid for readability
     ax.grid(True, alpha=0.3, linestyle='--')
     ax.set_axisbelow(True)
-    
-    # Add size legend
-    legend_sizes = [100, 200, 400]
-    legend_labels = ['Cold', 'Moderate', 'Hot']
-    legend_points = []
-    for size in legend_sizes:
-        legend_points.append(ax.scatter([], [], s=size, c='gray', alpha=0.6, edgecolors='black'))
-    
-    legend2 = ax.legend(legend_points, legend_labels, 
-                       scatterpoints=1, loc='lower right', 
-                       title='Temperature', fontsize=9, title_fontsize=10)
-    ax.add_artist(legend2)
-    
+
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     print(f"✓ Visualization 3 saved to {output_path}")
     plt.close()
-
 
 def main():
     """
