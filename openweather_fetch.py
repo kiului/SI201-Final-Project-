@@ -451,7 +451,7 @@ def main():
             print(f"   Temperature: {weather_data['temperature']}°C, "
                   f"Humidity: {weather_data['humidity']}%")
         else:
-            print("✗ Duplicate (skipped)")
+            print(" Duplicate (skipped)")
     
     # Final summary
 

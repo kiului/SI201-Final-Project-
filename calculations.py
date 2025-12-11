@@ -136,10 +136,9 @@ def write_results_to_file(df1, df2, df3, output_path='calculation_results.txt'):
         f.write("-" * 70 + "\n")
         f.write(df3.to_string(index=False))
         f.write("\n\n")
-        
-        f.write("=" * 70 + "\n")
+
         f.write("End of Results\n")
-        f.write("=" * 70 + "\n")
+
     
     print(f"✓ Results written to {output_path}")
 
@@ -189,9 +188,9 @@ def main():
     # Close connection
     conn.close()
     print()
-    print("=" * 70)
+
     print("Analysis complete!")
-    print("=" * 70)
+
 
 
 if __name__ == "__main__":
