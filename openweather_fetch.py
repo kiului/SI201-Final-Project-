@@ -412,20 +412,24 @@ def main():
     print()
     
     # Track which cities have already been collected
-    cursor.execute('SELECT DISTINCT city_name FROM weather_data')
-    collected_cities = set(row[0] for row in cursor.fetchall())
+    cursor.execute('''
+    SELECT w.city_name, c.country_code
+    FROM weather_data w
+    JOIN countries c ON w.country_id = c.country_id
+    ''')
+    collected_pairs = set((row[0], row[1]) for row in cursor.fetchall())
+
     
     # Collect new weather data
     items_collected = 0
     
     for city, country_code in CITIES_TO_COLLECT:
-        # Stop if we've collected enough items this run
         if items_collected >= items_to_collect_this_run:
             break
-        
-        # Skip if we already have this city
-        if city in collected_cities:
+
+        if (city, country_code) in collected_pairs:
             continue
+
         
         print(f"Fetching: {city}, {country_code}...", end=" ")
         
