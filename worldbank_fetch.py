@@ -159,12 +159,36 @@ def print_economic_data():
 
 create_economic_table()
 
-save_indicator_to_db("NY.GDP.PCAP.CD", "USA", 2024)
-save_indicator_to_db("NY.GDP.PCAP.CD", "IND", 2024)
-save_indicator_to_db("NY.GDP.PCAP.CD", "CHN", 2024)
-save_indicator_to_db("NY.GDP.PCAP.CD", "GBR", 2024)
-save_indicator_to_db("NY.GDP.PCAP.CD", "BRA", 2024)
-save_indicator_to_db("NY.GDP.PCAP.CD", "AUS", 2024)
-save_indicator_to_db("NY.GDP.PCAP.CD", "DEU", 2024) #higit
-
-print_economic_data()
+save_indicator_to_db("NY.GDP.PCAP.CD", "USA", 2024)   # United States
+save_indicator_to_db("NY.GDP.PCAP.CD", "IND", 2024)   # India
+save_indicator_to_db("NY.GDP.PCAP.CD", "CHN", 2024)   # China
+save_indicator_to_db("NY.GDP.PCAP.CD", "GBR", 2024)   # United Kingdom
+save_indicator_to_db("NY.GDP.PCAP.CD", "BRA", 2024)   # Brazil
+save_indicator_to_db("NY.GDP.PCAP.CD", "AUS", 2024)   # Australia
+save_indicator_to_db("NY.GDP.PCAP.CD", "DEU", 2024)   # Germany
+save_indicator_to_db("NY.GDP.PCAP.CD", "ZAF", 2024)   # South Africa
+save_indicator_to_db("NY.GDP.PCAP.CD", "SWE", 2024)   # Sweden
+save_indicator_to_db("NY.GDP.PCAP.CD", "RUS", 2024)   # Russia
+save_indicator_to_db("NY.GDP.PCAP.CD", "PAK", 2024)   # Pakistan
+save_indicator_to_db("NY.GDP.PCAP.CD", "ESP", 2024)   # Spain
+save_indicator_to_db("NY.GDP.PCAP.CD", "THA", 2024)   # Thailand
+save_indicator_to_db("NY.GDP.PCAP.CD", "JPN", 2024)   # Japan
+save_indicator_to_db("NY.GDP.PCAP.CD", "FRA", 2024)   # France
+save_indicator_to_db("NY.GDP.PCAP.CD", "ITA", 2024)   # Italy
+save_indicator_to_db("NY.GDP.PCAP.CD", "CAN", 2024)   # Canada
+save_indicator_to_db("NY.GDP.PCAP.CD", "MEX", 2024)   # Mexico
+save_indicator_to_db("NY.GDP.PCAP.CD", "ARG", 2024)   # Argentina
+save_indicator_to_db("NY.GDP.PCAP.CD", "KOR", 2024)   # South Korea
+save_indicator_to_db("NY.GDP.PCAP.CD", "TUR", 2024)   # Turkey
+save_indicator_to_db("NY.GDP.PCAP.CD", "EGY", 2024)   # Egypt
+save_indicator_to_db("NY.GDP.PCAP.CD", "IDN", 2024)   # Indonesia
+save_indicator_to_db("NY.GDP.PCAP.CD", "SAU", 2024)   # Saudi Arabia
+save_indicator_to_db("NY.GDP.PCAP.CD", "QAT", 2024)   # Qatar
+save_indicator_to_db("NY.GDP.PCAP.CD", "NLD", 2024)   # Netherlands
+save_indicator_to_db("NY.GDP.PCAP.CD", "BEL", 2024)   # Belgium
+save_indicator_to_db("NY.GDP.PCAP.CD", "NOR", 2024)   # Norway
+save_indicator_to_db("NY.GDP.PCAP.CD", "CHE", 2024)   # Switzerland
+save_indicator_to_db("NY.GDP.PCAP.CD", "POL", 2024)   # Poland
+save_indicator_to_db("NY.GDP.PCAP.CD", "GRC", 2024)   # Greece
+save_indicator_to_db("NY.GDP.PCAP.CD", "PRT", 2024)   # Portugal
+save_indicator_to_db("NY.GDP.PCAP.CD", "VNM", 2024)   # Vietnam

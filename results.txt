@@ -1,0 +1,72 @@
+================================================================================
+SI 201 FINAL PROJECT - DATA ANALYSIS RESULTS
+Team: Curious Finders
+Members: Hong Kiu Lui, Jessica Moon, Rachael Kim
+Generated: 2025-12-10 17:47:56
+================================================================================
+
+
+================================================================================
+CALCULATION 1: Average Temperature and Air Quality by Country
+================================================================================
+Purpose: Determine which countries have comfortable climate and clean air
+Sorted by: PM2.5 level (cleanest air first)
+
+Country                   Avg Temp (°C)        Avg PM2.5 (µg/m³)   
+--------------------------------------------------------------------------------
+Australia                 17.02                13.23               
+United Kingdom            8.99                 16.94               
+Brazil                    27.37                29.96               
+China                     8.58                 59.24               
+India                     15.9                 90.21               
+
+Key Findings:
+  - Cleanest air: Australia (PM2.5: 13.23 µg/m³)
+  - Most polluted: India (PM2.5: 90.21 µg/m³)
+  - WHO recommended limit: 15 µg/m³
+  - Countries meeting WHO standard: 1 of 5
+
+
+================================================================================
+CALCULATION 2: GDP per Capita vs Air Quality Comparison
+================================================================================
+Purpose: Analyze whether wealthier countries have cleaner or dirtier air
+Sorted by: GDP per capita (wealthiest first)
+
+Country                   GDP per Capita (USD)      Avg PM2.5 (µg/m³)   
+--------------------------------------------------------------------------------
+Australia                 $64,407.48                13.23               
+United Kingdom            $52,636.79                16.94               
+China                     $13,303.15                59.24               
+Brazil                    $10,280.31                29.96               
+India                     $2,696.66                 90.21               
+
+Key Findings:
+  - Wealthiest: Australia (GDP: $64,407.48, PM2.5: 13.23)
+  - Poorest: India (GDP: $2,696.66, PM2.5: 90.21)
+  - Correlation between GDP and PM2.5: -0.808
+    (Negative: Wealthier countries tend to have LESS pollution)
+
+
+================================================================================
+CALCULATION 3: Multi-Factor Country Comparison
+================================================================================
+Purpose: Comprehensive view combining climate, air quality, and economic data
+Sorted by: GDP (descending), then PM2.5 (ascending)
+
+Country              Temp (°C)    PM2.5        GDP per Capita (USD)     
+--------------------------------------------------------------------------------
+Australia            17.02        13.23        $64,407.48               
+United Kingdom       8.99         16.94        $52,636.79               
+China                8.58         59.24        $13,303.15               
+Brazil               27.37        29.96        $10,280.31               
+India                15.9         90.21        $2,696.66                
+
+Key Findings:
+  Countries with 'ideal' conditions (high GDP, low PM2.5, comfortable temp):
+    - Australia: 17.02°C, PM2.5: 13.23, GDP: $64,407.48
+
+
+================================================================================
+END OF REPORT
+================================================================================
