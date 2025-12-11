@@ -7,7 +7,7 @@ from collections import defaultdict
 API_KEY = "b93b8a75a83fd2286b29961a532025b2f7532f865f0071530fef3b14dccf2a24"   
 BASE_URL = "https://api.openaq.org/v3"
 
-
+# Fixed: Use the countries you actually want (JP, KR, TH instead of FR, ES, PL)
 REQUIRED_COUNTRIES = [
     ("US", "United States"),
     ("IN", "India"),
@@ -16,9 +16,9 @@ REQUIRED_COUNTRIES = [
     ("BR", "Brazil"),
     ("AU", "Australia"),
     ("DE", "Germany"),
-    ("JP", "Japan"),        
-    ("KR", "South Korea"),  
-    ("TH", "Thailand")      
+    ("JP", "Japan"),        # Changed from FR
+    ("KR", "South Korea"),  # Changed from ES
+    ("TH", "Thailand")      # Changed from PL
 ]
 
 PARAM_IDS = {
@@ -365,7 +365,7 @@ def main():
     for country_code, country_name in REQUIRED_COUNTRIES:
         # Check if we've hit the per-run limit
         if total_rows_added >= MAX_ROWS_PER_RUN:
-            print(f"\n  Reached {MAX_ROWS_PER_RUN} row limit for this run.")
+            print(f"\n⚠️  Reached {MAX_ROWS_PER_RUN} row limit for this run.")
             print(f"   Run the script again to continue collecting data.")
             break
         
@@ -378,7 +378,7 @@ def main():
                       (country_code,))
         result = cursor.fetchone()
         if not result:
-            print(f"     Country not in database, skipping...\n")
+            print(f"   ⚠️  Country not in database, skipping...\n")
             continue
         country_id = result[0]
         
@@ -400,7 +400,7 @@ def main():
         locations = fetch_locations(country_code, limit=50)
         
         if not locations:
-            print(f"    No API locations found\n")
+            print(f"   ❌ No API locations found\n")
             continue
         
         # Score and sort locations by data availability
@@ -409,7 +409,7 @@ def main():
         good_locations = [loc for score, loc in scored_locations if score > 0]
         
         if not good_locations:
-            print(f"    No locations with target parameters\n")
+            print(f"   ❌ No locations with target parameters\n")
             continue
         
         print(f"   Found {len(good_locations)} locations with data")
@@ -450,7 +450,7 @@ def main():
                 
                 # Check if we've hit the run limit
                 if total_rows_added >= MAX_ROWS_PER_RUN:
-                    print(f"\n     Reached {MAX_ROWS_PER_RUN} row limit for this run")
+                    print(f"\n   ⚠️  Reached {MAX_ROWS_PER_RUN} row limit for this run")
                     break
         
         print(f"   ✓ Collected {locations_added} locations for {country_name}\n")
@@ -477,9 +477,9 @@ def main():
         print(f"   {country_name:20s} ({code}): {count:3d} locations {status}")
     
     if final_count >= 100:
-        print(f"\n TARGET REACHED! Database complete with 100 locations.")
+        print(f"\n🎉 TARGET REACHED! Database complete with 100 locations.")
     elif total_rows_added >= MAX_ROWS_PER_RUN:
-        print(f"\n  Run limit reached. Run the script again to continue.")
+        print(f"\n⏸️  Run limit reached. Run the script again to continue.")
     
     print("=" * 60)
     
