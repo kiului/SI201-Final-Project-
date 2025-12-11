@@ -7,7 +7,7 @@ from collections import defaultdict
 API_KEY = "b93b8a75a83fd2286b29961a532025b2f7532f865f0071530fef3b14dccf2a24"   
 BASE_URL = "https://api.openaq.org/v3"
 
-# Fixed: Use the countries you actually want (JP, KR, TH instead of FR, ES, PL)
+
 REQUIRED_COUNTRIES = [
     ("US", "United States"),
     ("IN", "India"),
@@ -16,9 +16,9 @@ REQUIRED_COUNTRIES = [
     ("BR", "Brazil"),
     ("AU", "Australia"),
     ("DE", "Germany"),
-    ("JP", "Japan"),        # Changed from FR
-    ("KR", "South Korea"),  # Changed from ES
-    ("TH", "Thailand")      # Changed from PL
+    ("JP", "Japan"),        
+    ("KR", "South Korea"),  
+    ("TH", "Thailand")      
 ]
 
 PARAM_IDS = {
@@ -27,8 +27,10 @@ PARAM_IDS = {
     5: "o3"
 }
 
-MIN_DELAY = 0.5
-MAX_ROWS_PER_RUN = 25  # Added limit
+MIN_DELAY = 1.0  # Increased from 0.5 to avoid rate limits
+MAX_ROWS_PER_RUN = 25
+RETRY_DELAY = 15  # Wait longer on rate limit
+MAX_RETRIES = 3  # Maximum retry attempts
 session = requests.Session()
 session.headers.update({"X-API-Key": API_KEY})
 
@@ -126,7 +128,7 @@ def get_country_row_counts(conn):
     return {row[0]: row[1] for row in cursor.fetchall()}
 
 def fetch_locations(country_code, limit=50):
-    """Gets monitoring stations."""
+    """Gets monitoring stations with retry logic."""
     url = f"{BASE_URL}/locations"
     params = {
         "limit": limit,
@@ -134,62 +136,94 @@ def fetch_locations(country_code, limit=50):
         "iso": country_code
     }
     
-    try:
-        time.sleep(MIN_DELAY)
-        response = session.get(url, params=params, timeout=10)
-        
-        if response.status_code == 429:
-            print(f"    Rate limited, waiting 10s...")
-            time.sleep(10)
-            response = session.get(url, params=params, timeout=10)
-        
-        if response.status_code == 200:
-            return response.json().get("results", [])
-        return []
-        
-    except Exception as e:
-        print(f"    Error: {e}")
-        return []
+    for attempt in range(MAX_RETRIES):
+        try:
+            time.sleep(MIN_DELAY)
+            response = session.get(url, params=params, timeout=15)
+            
+            if response.status_code == 429:
+                wait_time = RETRY_DELAY * (attempt + 1)
+                print(f"    Rate limited (attempt {attempt + 1}/{MAX_RETRIES}), waiting {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            
+            if response.status_code == 200:
+                return response.json().get("results", [])
+            
+            if response.status_code >= 400:
+                print(f"    API error {response.status_code}")
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_DELAY)
+                    continue
+            
+            return []
+            
+        except Exception as e:
+            print(f"    Error (attempt {attempt + 1}/{MAX_RETRIES}): {e}")
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAY)
+                continue
+            return []
+    
+    print(f"    Failed after {MAX_RETRIES} attempts")
+    return []
 
 def fetch_latest_measurements(location_id):
     """Gets measurements and returns them as a dict by parameter."""
-    try:
-        url = f"{BASE_URL}/locations/{location_id}/latest"
-        time.sleep(MIN_DELAY)
-        response = session.get(url, timeout=10)
-        
-        if response.status_code == 200:
-            data = response.json()
-            results = data.get("results", [])
+    for attempt in range(MAX_RETRIES):
+        try:
+            url = f"{BASE_URL}/locations/{location_id}/latest"
+            time.sleep(MIN_DELAY)
+            response = session.get(url, timeout=15)
             
-            measurements = {}
-            datetime_utc = None
+            if response.status_code == 429:
+                wait_time = RETRY_DELAY
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(wait_time)
+                    continue
+                return {}
             
-            for result in results:
-                param = result.get("parameter", {})
-                param_id = param.get("id")
+            if response.status_code == 200:
+                data = response.json()
+                results = data.get("results", [])
                 
-                if param_id in PARAM_IDS:
-                    param_name = PARAM_IDS[param_id]
-                    measurements[param_name] = result.get("value")
-                    if not datetime_utc:
-                        datetime_utc = result.get("datetime", {}).get("utc")
+                measurements = {}
+                datetime_utc = None
+                
+                for result in results:
+                    param = result.get("parameter", {})
+                    param_id = param.get("id")
+                    
+                    if param_id in PARAM_IDS:
+                        param_name = PARAM_IDS[param_id]
+                        measurements[param_name] = result.get("value")
+                        if not datetime_utc:
+                            datetime_utc = result.get("datetime", {}).get("utc")
+                
+                if measurements:
+                    measurements['datetime'] = datetime_utc
+                    return measurements
             
-            if measurements:
-                measurements['datetime'] = datetime_utc
-                return measurements
-        
-        return fetch_measurements_fallback(location_id)
-        
-    except Exception as e:
-        return {}
+            # Try fallback on first attempt if main method fails
+            if attempt == 0:
+                return fetch_measurements_fallback(location_id)
+            
+            return {}
+            
+        except Exception as e:
+            if attempt < MAX_RETRIES - 1:
+                time.sleep(RETRY_DELAY)
+                continue
+            return {}
+    
+    return {}
 
 def fetch_measurements_fallback(location_id):
-    """Fallback method using sensors endpoint."""
+    """Fallback method using sensors endpoint with retry logic."""
     try:
         sensors_url = f"{BASE_URL}/locations/{location_id}/sensors"
         time.sleep(MIN_DELAY)
-        response = session.get(sensors_url, timeout=10)
+        response = session.get(sensors_url, timeout=15)
         
         if response.status_code != 200:
             return {}
@@ -207,17 +241,21 @@ def fetch_measurements_fallback(location_id):
             
             time.sleep(MIN_DELAY)
             latest_url = f"{BASE_URL}/sensors/{sensor.get('id')}/hours"
-            latest_resp = session.get(latest_url, 
-                                     params={"limit": 1, "sort": "desc"}, 
-                                     timeout=10)
             
-            if latest_resp.status_code == 200:
-                results = latest_resp.json().get("results", [])
-                if results:
-                    measurement = results[0]
-                    measurements[param_name] = measurement.get("value")
-                    if not datetime_utc:
-                        datetime_utc = measurement.get("datetime", {}).get("utc")
+            try:
+                latest_resp = session.get(latest_url, 
+                                         params={"limit": 1, "sort": "desc"}, 
+                                         timeout=15)
+                
+                if latest_resp.status_code == 200:
+                    results = latest_resp.json().get("results", [])
+                    if results:
+                        measurement = results[0]
+                        measurements[param_name] = measurement.get("value")
+                        if not datetime_utc:
+                            datetime_utc = measurement.get("datetime", {}).get("utc")
+            except Exception:
+                continue
         
         if measurements:
             measurements['datetime'] = datetime_utc
@@ -327,7 +365,7 @@ def main():
     for country_code, country_name in REQUIRED_COUNTRIES:
         # Check if we've hit the per-run limit
         if total_rows_added >= MAX_ROWS_PER_RUN:
-            print(f"\n⚠️  Reached {MAX_ROWS_PER_RUN} row limit for this run.")
+            print(f"\n  Reached {MAX_ROWS_PER_RUN} row limit for this run.")
             print(f"   Run the script again to continue collecting data.")
             break
         
@@ -340,7 +378,7 @@ def main():
                       (country_code,))
         result = cursor.fetchone()
         if not result:
-            print(f"   ⚠️  Country not in database, skipping...\n")
+            print(f"     Country not in database, skipping...\n")
             continue
         country_id = result[0]
         
@@ -362,7 +400,7 @@ def main():
         locations = fetch_locations(country_code, limit=50)
         
         if not locations:
-            print(f"   ❌ No API locations found\n")
+            print(f"    No API locations found\n")
             continue
         
         # Score and sort locations by data availability
@@ -371,7 +409,7 @@ def main():
         good_locations = [loc for score, loc in scored_locations if score > 0]
         
         if not good_locations:
-            print(f"   ❌ No locations with target parameters\n")
+            print(f"    No locations with target parameters\n")
             continue
         
         print(f"   Found {len(good_locations)} locations with data")
@@ -412,7 +450,7 @@ def main():
                 
                 # Check if we've hit the run limit
                 if total_rows_added >= MAX_ROWS_PER_RUN:
-                    print(f"\n   ⚠️  Reached {MAX_ROWS_PER_RUN} row limit for this run")
+                    print(f"\n     Reached {MAX_ROWS_PER_RUN} row limit for this run")
                     break
         
         print(f"   ✓ Collected {locations_added} locations for {country_name}\n")
@@ -439,9 +477,9 @@ def main():
         print(f"   {country_name:20s} ({code}): {count:3d} locations {status}")
     
     if final_count >= 100:
-        print(f"\n🎉 TARGET REACHED! Database complete with 100 locations.")
+        print(f"\n TARGET REACHED! Database complete with 100 locations.")
     elif total_rows_added >= MAX_ROWS_PER_RUN:
-        print(f"\n⏸️  Run limit reached. Run the script again to continue.")
+        print(f"\n  Run limit reached. Run the script again to continue.")
     
     print("=" * 60)
     
