@@ -71,7 +71,7 @@ CITIES_TO_COLLECT = [
     ("Edinburgh", "GB"),
     ("Bristol", "GB"),
     ("Sheffield", "GB"),
-    ("Newcastle", "GB"),
+    ("Southampton", "GB"),
 
     # Brazil (10)
     ("Sao Paulo", "BR"),
@@ -392,7 +392,7 @@ def main():
     
     # Connect to database
     conn = sqlite3.connect(DATABASE_PATH)
-    print(f"✓ Connected to database: {DATABASE_PATH}")
+    print(f" Connected to database: {DATABASE_PATH}")
     
     # Create all tables
     create_database_tables(conn)
@@ -412,20 +412,24 @@ def main():
     print()
     
     # Track which cities have already been collected
-    cursor.execute('SELECT DISTINCT city_name FROM weather_data')
-    collected_cities = set(row[0] for row in cursor.fetchall())
+    cursor.execute('''
+    SELECT w.city_name, c.country_code
+    FROM weather_data w
+    JOIN countries c ON w.country_id = c.country_id
+    ''')
+    collected_pairs = set((row[0], row[1]) for row in cursor.fetchall())
+
     
     # Collect new weather data
     items_collected = 0
     
     for city, country_code in CITIES_TO_COLLECT:
-        # Stop if we've collected enough items this run
         if items_collected >= items_to_collect_this_run:
             break
-        
-        # Skip if we already have this city
-        if city in collected_cities:
+
+        if (city, country_code) in collected_pairs:
             continue
+
         
         print(f"Fetching: {city}, {country_code}...", end=" ")
         
@@ -446,7 +450,7 @@ def main():
         
         if inserted:
             items_collected += 1
-            print(f"✓ Stored ({items_collected}/{items_to_collect_this_run})")
+            print(f" Stored ({items_collected}/{items_to_collect_this_run})")
             print(f"   Temperature: {weather_data['temperature']}°C, "
                   f"Humidity: {weather_data['humidity']}%")
         else:
@@ -459,7 +463,7 @@ def main():
     print()
     cursor.execute('SELECT COUNT(*) FROM weather_data')
     final_count = cursor.fetchone()[0]
-    print("✓ Data collection complete!")
+    print(" Data collection complete!")
     print(f"  - New records added this run: {items_collected}")
     print(f"  - Total records in database: {final_count}")
     
