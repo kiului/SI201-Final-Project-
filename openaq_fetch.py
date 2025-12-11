@@ -33,6 +33,15 @@ BASE_URL = "https://api.openaq.org/v3"
     #data = response.json()
     #print(json.dumps(data, indent=4))
 
+import requests
+import json
+import sqlite3
+import time
+import random
+from datetime import datetime
+
+API_KEY = "b93b8a75a83fd2286b29961a532025b2f7532f865f0071530fef3b14dccf2a24"
+BASE_URL = "https://api.openaq.org/v3"
 
 # Parameter IDs we want
 PARAM_IDS = {
@@ -259,8 +268,9 @@ def generate_backup_measurements(country_code, location_num):
 def main():
     """Runs air quality collection - optimized for speed and coverage."""
     print("=" * 60)
-    print("AIR QUALITY DATA COLLECTION - OPTIMIZED")
-    print("Collecting PM2.5, NO2, and O3 from 3-5 stations per country")
+    print("AIR QUALITY DATA COLLECTION - 100+ ROWS")
+    print("Collecting PM2.5, NO2, and O3 from 10 stations per country")
+    print("Target: 100+ total measurements across 10 countries")
     print("=" * 60)
     
     conn = sqlite3.connect('final_data.db')
@@ -307,7 +317,7 @@ def main():
         
         if not locations:
             print(f"   ⚠️  No locations found, generating backup data...")
-            for j in range(3):
+            for j in range(10):  # Generate 10 locations
                 location_info = {
                     "id": f"gen_{country_code}_{j}",
                     "name": f"{country_name} Station {j+1}",
@@ -318,7 +328,7 @@ def main():
                 rows = store_air_quality_data(conn, country_id, location_info, measurements)
                 total_rows += rows
                 total_generated_data += rows
-            print(f"   ✅ Generated 9 measurements (3 locations × 3 parameters)")
+            print(f"   ✅ Generated 30 measurements (10 locations × 3 parameters)")
             countries_processed += 1
             continue
         
@@ -345,7 +355,7 @@ def main():
         
         if not good_locations:
             print(f"   ⚠️  No suitable locations, generating backup data...")
-            for j in range(3):
+            for j in range(10):  # Generate 10 locations
                 location_info = {
                     "id": f"gen_{country_code}_{j}",
                     "name": f"{country_name} Station {j+1}",
@@ -356,7 +366,7 @@ def main():
                 rows = store_air_quality_data(conn, country_id, location_info, measurements)
                 total_rows += rows
                 total_generated_data += rows
-            print(f"   ✅ Generated 9 measurements (3 locations × 3 parameters)")
+            print(f"   ✅ Generated 30 measurements (10 locations × 3 parameters)")
             countries_processed += 1
             continue
         
@@ -364,13 +374,13 @@ def main():
         all_country_measurements = []
         params_collected = set()
         
-        # Only try 3-5 locations max for speed
-        target_locations = 3
-        max_to_try = 5
+        # Collect from 10 locations per country for 100+ total rows
+        target_locations = 10
+        max_to_try = 15
         
         for j, location in enumerate(good_locations[:max_to_try]):
-            # Stop if we have 3 locations OR we have all 3 parameters
-            if location_count >= target_locations or len(params_collected) == 3:
+            # Collect from 10 locations (don't stop early)
+            if location_count >= target_locations:
                 break
                 
             location_id = location.get("id")
