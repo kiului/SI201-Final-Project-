@@ -33,16 +33,6 @@ BASE_URL = "https://api.openaq.org/v3"
     #data = response.json()
     #print(json.dumps(data, indent=4))
 
-import requests
-import json
-import sqlite3
-import time
-import random
-from datetime import datetime
-
-API_KEY = "b93b8a75a83fd2286b29961a532025b2f7532f865f0071530fef3b14dccf2a24"
-BASE_URL = "https://api.openaq.org/v3"
-
 # Parameter IDs we want
 PARAM_IDS = {
     2: "pm25",   # PM2.5
