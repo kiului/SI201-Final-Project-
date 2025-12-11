@@ -7,7 +7,7 @@ from collections import defaultdict
 API_KEY = "b93b8a75a83fd2286b29961a532025b2f7532f865f0071530fef3b14dccf2a24"   
 BASE_URL = "https://api.openaq.org/v3"
 
-# Fixed: Use the countries you actually want (JP, KR, TH instead of FR, ES, PL)
+
 REQUIRED_COUNTRIES = [
     ("US", "United States"),
     ("IN", "India"),
@@ -16,9 +16,9 @@ REQUIRED_COUNTRIES = [
     ("BR", "Brazil"),
     ("AU", "Australia"),
     ("DE", "Germany"),
-    ("JP", "Japan"),        # Changed from FR
-    ("KR", "South Korea"),  # Changed from ES
-    ("TH", "Thailand")      # Changed from PL
+    ("JP", "Japan"),       
+    ("KR", "South Korea"),  
+    ("TH", "Thailand")      
 ]
 
 PARAM_IDS = {
@@ -28,7 +28,7 @@ PARAM_IDS = {
 }
 
 MIN_DELAY = 0.5
-MAX_ROWS_PER_RUN = 25  # Added limit
+MAX_ROWS_PER_RUN = 25 
 session = requests.Session()
 session.headers.update({"X-API-Key": API_KEY})
 
