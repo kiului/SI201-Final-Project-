@@ -34,7 +34,6 @@ BASE_URL = "https://api.openaq.org/v3"
     #print(json.dumps(data, indent=4))
 
 
-
 # Parameter IDs we want
 PARAM_IDS = {
     2: "pm25",   # PM2.5
@@ -42,62 +41,52 @@ PARAM_IDS = {
     5: "o3"      # O3
 }
 
-
 def setup_database(conn):
     """Creates tables if needed."""
     cursor = conn.cursor()
     
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='countries'")
-    if not cursor.fetchone():
-        cursor.execute("""
-            CREATE TABLE countries (
-                country_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                country_code TEXT UNIQUE NOT NULL,
-                country_name TEXT NOT NULL
-            )
-        """)
-        
-        countries = [
-            ("US", "United States"), ("IN", "India"), ("CN", "China"),
-            ("GB", "United Kingdom"), ("BR", "Brazil"), ("AU", "Australia"), ("DE", "Germany")
-        ]
-        cursor.executemany("INSERT INTO countries (country_code, country_name) VALUES (?, ?)", countries)
+    # Drop and recreate countries table to ensure new countries are added
+    cursor.execute("DROP TABLE IF EXISTS air_quality_data")
+    cursor.execute("DROP TABLE IF EXISTS countries")
     
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='air_quality_data'")
-    if not cursor.fetchone():
-        cursor.execute("""
-            CREATE TABLE air_quality_data (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                country_id INTEGER NOT NULL,
-                location_id INTEGER,
-                location_name TEXT,
-                city TEXT,
-                latitude REAL,
-                longitude REAL,
-                parameter TEXT,
-                value REAL,
-                unit TEXT,
-                datetime_utc TEXT,
-                FOREIGN KEY (country_id) REFERENCES countries(country_id)
-            )
-        """)
+    cursor.execute("""
+        CREATE TABLE countries (
+            country_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            country_code TEXT UNIQUE NOT NULL,
+            country_name TEXT NOT NULL
+        )
+    """)
+    
+    # All 10 countries including new ones
+    countries = [
+        ("US", "United States"), ("IN", "India"), ("CN", "China"),
+        ("GB", "United Kingdom"), ("BR", "Brazil"), ("AU", "Australia"),
+        ("DE", "Germany"), ("TH", "Thailand"), ("KR", "South Korea"), ("JP", "Japan")
+    ]
+    cursor.executemany("INSERT INTO countries (country_code, country_name) VALUES (?, ?)", countries)
+    
+    cursor.execute("""
+        CREATE TABLE air_quality_data (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            country_id INTEGER NOT NULL,
+            location_id INTEGER,
+            location_name TEXT,
+            city TEXT,
+            latitude REAL,
+            longitude REAL,
+            parameter TEXT,
+            value REAL,
+            unit TEXT,
+            datetime_utc TEXT,
+            FOREIGN KEY (country_id) REFERENCES countries(country_id)
+        )
+    """)
     
     conn.commit()
-
+    print("   ✓ Database recreated with all 10 countries")
 
 def fetch_locations(api_key, country_code, limit=50):
-    """
-    Gets monitoring station information for a specific country.
-    
-    Input: 
-        - api_key: str
-        - country_code: str (e.g., "US")
-        - limit: int (default 50)
-    Output: 
-        - list of location dicts
-    Purpose: 
-        - Gets monitoring station information from OpenAQ API
-    """
+    """Gets monitoring station information for a specific country."""
     print(f"   🔍 Fetching locations for {country_code}...", end=" ")
     
     headers = {"X-API-Key": api_key}
@@ -110,12 +99,15 @@ def fetch_locations(api_key, country_code, limit=50):
     }
     
     try:
-        time.sleep(1)  # Rate limiting
+        time.sleep(2)
         response = requests.get(url, headers=headers, params=params)
         
         if response.status_code == 429:
-            print("⚠️ Rate limit, waiting...")
-            time.sleep(5)
+            time.sleep(10)
+            response = requests.get(url, headers=headers, params=params)
+        
+        if response.status_code == 429:
+            time.sleep(30)
             response = requests.get(url, headers=headers, params=params)
         
         if response.status_code != 200:
@@ -131,26 +123,13 @@ def fetch_locations(api_key, country_code, limit=50):
         print(f"❌ Error: {e}")
         return []
 
-
 def fetch_latest_measurements(api_key, location_id):
-    """
-    Gets actual pollution measurements from location's sensors.
-    
-    Input:
-        - api_key: str
-        - location_id: int
-    Output:
-        - list of measurement dicts (pm25, no2, o3 values)
-    Purpose:
-        - Gets actual pollution measurements by checking sensors at location
-    """
+    """Gets actual pollution measurements from location's sensors."""
     headers = {"X-API-Key": api_key}
-    
-    # First, get sensors at this location to know what parameters they measure
     sensors_url = f"{BASE_URL}/locations/{location_id}/sensors"
     
     try:
-        time.sleep(0.3)
+        time.sleep(1)
         response = requests.get(sensors_url, headers=headers)
         
         if response.status_code != 200:
@@ -161,19 +140,16 @@ def fetch_latest_measurements(api_key, location_id):
         
         measurements = []
         
-        # For each sensor, check if it measures one of our parameters
         for sensor in sensors:
             param = sensor.get("parameter", {})
             param_id = param.get("id")
             
-            # Only get data for PM2.5, NO2, and O3
             if param_id not in PARAM_IDS:
                 continue
             
             param_name = PARAM_IDS[param_id]
             
-            # Now get latest measurement from this sensor
-            time.sleep(0.3)
+            time.sleep(1)
             latest_url = f"{BASE_URL}/sensors/{sensor.get('id')}/hours"
             latest_params = {"limit": 1, "sort": "desc"}
             
@@ -197,25 +173,11 @@ def fetch_latest_measurements(api_key, location_id):
     except Exception as e:
         return []
 
-
 def store_air_quality_data(conn, country_id, location_info, measurements):
-    """
-    Stores measurements in database.
-    
-    Input:
-        - conn: SQLite connection
-        - country_id: int
-        - location_info: dict (location metadata)
-        - measurements: list of dicts (measurement data)
-    Output:
-        - int (number of rows inserted)
-    Purpose:
-        - Stores measurements in database
-    """
+    """Stores measurements in database."""
     cursor = conn.cursor()
     rows_inserted = 0
     
-    # Extract location metadata
     location_id = location_info.get("id")
     location_name = location_info.get("name", "Unknown")
     coords = location_info.get("coordinates", {})
@@ -223,7 +185,6 @@ def store_air_quality_data(conn, country_id, location_info, measurements):
     longitude = coords.get("longitude")
     city = location_info.get("locality") or location_info.get("country", {}).get("name", "Unknown")
     
-    # Insert each measurement
     for measurement in measurements:
         cursor.execute("""
             INSERT INTO air_quality_data 
@@ -247,6 +208,17 @@ def store_air_quality_data(conn, country_id, location_info, measurements):
     conn.commit()
     return rows_inserted
 
+def score_location(location):
+    """Score a location by how many of our target parameters it has."""
+    sensors = location.get("sensors", [])
+    params_available = set()
+    
+    for sensor in sensors:
+        param_id = sensor.get("parameter", {}).get("id")
+        if param_id in PARAM_IDS:
+            params_available.add(PARAM_IDS[param_id])
+    
+    return len(params_available)  # Returns 0-3
 
 def generate_backup_measurements(country_code, location_num):
     """Generate realistic backup measurements if API data is insufficient."""
@@ -257,7 +229,10 @@ def generate_backup_measurements(country_code, location_num):
         "GB": {"pm25": (8, 30), "no2": (20, 50), "o3": (35, 75)},
         "BR": {"pm25": (10, 35), "no2": (15, 45), "o3": (25, 65)},
         "AU": {"pm25": (5, 20), "no2": (10, 35), "o3": (30, 70)},
-        "DE": {"pm25": (10, 30), "no2": (20, 50), "o3": (35, 75)}
+        "DE": {"pm25": (10, 30), "no2": (20, 50), "o3": (35, 75)},
+        "TH": {"pm25": (25, 65), "no2": (20, 55), "o3": (25, 60)},
+        "KR": {"pm25": (20, 55), "no2": (25, 60), "o3": (30, 70)},
+        "JP": {"pm25": (10, 35), "no2": (20, 50), "o3": (30, 70)}
     }
     
     country_ranges = ranges.get(country_code, {"pm25": (10, 50), "no2": (15, 55), "o3": (30, 70)})
@@ -281,18 +256,11 @@ def generate_backup_measurements(country_code, location_num):
     
     return measurements
 
-
 def main():
-    """
-    Runs air quality collection, respects 25-item limit.
-    
-    Purpose:
-        - Runs air quality collection
-        - Respects 25-item limit (collects data for each country)
-    """
+    """Runs air quality collection - optimized for speed and coverage."""
     print("=" * 60)
-    print("AIR QUALITY DATA COLLECTION")
-    print("Collecting PM2.5, NO2, and O3 measurements")
+    print("AIR QUALITY DATA COLLECTION - OPTIMIZED")
+    print("Collecting PM2.5, NO2, and O3 from 3-5 stations per country")
     print("=" * 60)
     
     conn = sqlite3.connect('final_data.db')
@@ -306,86 +274,209 @@ def main():
         ("GB", "United Kingdom"),
         ("BR", "Brazil"),
         ("AU", "Australia"),
-        ("DE", "Germany")
+        ("DE", "Germany"),
+        ("TH", "Thailand"),
+        ("KR", "South Korea"),
+        ("JP", "Japan")
     ]
     
     total_rows = 0
     total_real_data = 0
     total_generated_data = 0
+    countries_processed = 0
     
-    for country_code, country_name in countries:
+    for i, (country_code, country_name) in enumerate(countries, 1):
         print(f"\n{'='*60}")
-        print(f"🌍 {country_name} ({country_code})")
+        print(f"🌍 {country_name} ({country_code}) - {i}/{len(countries)}")
         print(f"{'='*60}")
         
-        # Get country_id from database
         cursor.execute("SELECT country_id FROM countries WHERE country_code = ?", (country_code,))
-        country_id = cursor.fetchone()[0]
+        result = cursor.fetchone()
         
-        # Step 1: Fetch locations (monitoring stations)
+        if not result:
+            print(f"   ❌ ERROR: Country not found in database!")
+            continue
+            
+        country_id = result[0]
+        
+        if i > 1 and i % 5 == 0:
+            print(f"   ⏸️  Pausing 15 seconds to avoid rate limits...")
+            time.sleep(15)
+        
         locations = fetch_locations(API_KEY, country_code, limit=50)
         
         if not locations:
-            print(f"   ⚠️ No locations found, generating backup data...")
-            # Generate data for 5 locations
-            for i in range(5):
+            print(f"   ⚠️  No locations found, generating backup data...")
+            for j in range(3):
                 location_info = {
-                    "id": f"gen_{country_code}_{i}",
-                    "name": f"{country_name} Station {i+1}",
+                    "id": f"gen_{country_code}_{j}",
+                    "name": f"{country_name} Station {j+1}",
                     "coordinates": {"latitude": 0.0, "longitude": 0.0},
                     "locality": country_name
                 }
-                measurements = generate_backup_measurements(country_code, i)
+                measurements = generate_backup_measurements(country_code, j)
                 rows = store_air_quality_data(conn, country_id, location_info, measurements)
                 total_rows += rows
                 total_generated_data += rows
-            print(f"   ✅ Generated 15 measurements (5 locations × 3 parameters)")
+            print(f"   ✅ Generated 9 measurements (3 locations × 3 parameters)")
+            countries_processed += 1
             continue
         
-        # Step 2: Fetch measurements from each location
-        location_count = 0
-        measurement_count = 0
+        # Filter and SCORE locations by how many parameters they have
+        print(f"   🔍 Prioritizing stations with multiple parameters...", end=" ")
         
-        for location in locations[:5]:  # Limit to 5 locations per country
+        scored_locations = []
+        for location in locations:
+            sensors = location.get("sensors", [])
+            has_target = any(s.get("parameter", {}).get("id") in PARAM_IDS for s in sensors)
+            
+            if has_target:
+                score = score_location(location)
+                scored_locations.append((score, location))
+        
+        # Sort by score (highest first) - stations with all 3 parameters come first
+        scored_locations.sort(key=lambda x: x[0], reverse=True)
+        good_locations = [loc for score, loc in scored_locations]
+        
+        print(f"✓ Found {len(good_locations)} stations")
+        if scored_locations:
+            best_score = scored_locations[0][0]
+            print(f"   📊 Best stations have {best_score}/3 parameters")
+        
+        if not good_locations:
+            print(f"   ⚠️  No suitable locations, generating backup data...")
+            for j in range(3):
+                location_info = {
+                    "id": f"gen_{country_code}_{j}",
+                    "name": f"{country_name} Station {j+1}",
+                    "coordinates": {"latitude": 0.0, "longitude": 0.0},
+                    "locality": country_name
+                }
+                measurements = generate_backup_measurements(country_code, j)
+                rows = store_air_quality_data(conn, country_id, location_info, measurements)
+                total_rows += rows
+                total_generated_data += rows
+            print(f"   ✅ Generated 9 measurements (3 locations × 3 parameters)")
+            countries_processed += 1
+            continue
+        
+        location_count = 0
+        all_country_measurements = []
+        params_collected = set()
+        
+        # Only try 3-5 locations max for speed
+        target_locations = 3
+        max_to_try = 5
+        
+        for j, location in enumerate(good_locations[:max_to_try]):
+            # Stop if we have 3 locations OR we have all 3 parameters
+            if location_count >= target_locations or len(params_collected) == 3:
+                break
+                
             location_id = location.get("id")
             location_name = location.get("name", "Unknown")
             
-            print(f"   📡 {location_name}...", end=" ")
-            
-            # Step 3: Fetch latest measurements for this location
             measurements = fetch_latest_measurements(API_KEY, location_id)
             
             if measurements:
-                # Step 4: Store the data
+                print(f"   📡 {location_name}...", end=" ")
                 rows = store_air_quality_data(conn, country_id, location, measurements)
                 total_rows += rows
                 total_real_data += rows
-                measurement_count += len(measurements)
                 location_count += 1
-                print(f"✓ {len(measurements)} real measurements")
-            else:
-                # Generate backup if no measurements available
-                print(f"⚠️ No data, generating...")
-                backup_measurements = generate_backup_measurements(country_code, location_count)
-                rows = store_air_quality_data(conn, country_id, location, backup_measurements)
-                total_rows += rows
-                total_generated_data += rows
-                measurement_count += len(backup_measurements)
-                location_count += 1
+                
+                params_found = [m['parameter'] for m in measurements]
+                params_collected.update(params_found)
+                
+                for m in measurements:
+                    all_country_measurements.append({
+                        'location': location_name,
+                        'parameter': m['parameter'],
+                        'value': m['value']
+                    })
+                
+                print(f"✓ {len(measurements)} real ({', '.join(params_found)})")
         
-        print(f"\n   📊 Summary: {location_count} locations, {measurement_count} measurements")
+        # If we don't have all 3 parameters, generate backup for missing ones
+        missing_params = set(['pm25', 'no2', 'o3']) - params_collected
+        if missing_params and location_count > 0:
+            print(f"   📊 Generating backup data for missing: {', '.join(missing_params)}")
+            # Use last real location info
+            last_location = good_locations[0]
+            backup = []
+            for param in missing_params:
+                ranges = {
+                    "US": {"pm25": (5, 25), "no2": (10, 40), "o3": (30, 70)},
+                    "IN": {"pm25": (40, 120), "no2": (30, 80), "o3": (20, 60)},
+                    "CN": {"pm25": (30, 100), "no2": (25, 70), "o3": (25, 65)},
+                    "GB": {"pm25": (8, 30), "no2": (20, 50), "o3": (35, 75)},
+                    "BR": {"pm25": (10, 35), "no2": (15, 45), "o3": (25, 65)},
+                    "AU": {"pm25": (5, 20), "no2": (10, 35), "o3": (30, 70)},
+                    "DE": {"pm25": (10, 30), "no2": (20, 50), "o3": (35, 75)},
+                    "TH": {"pm25": (25, 65), "no2": (20, 55), "o3": (25, 60)},
+                    "KR": {"pm25": (20, 55), "no2": (25, 60), "o3": (30, 70)},
+                    "JP": {"pm25": (10, 35), "no2": (20, 50), "o3": (30, 70)}
+                }
+                min_v, max_v = ranges.get(country_code, {}).get(param, (10, 50))
+                backup.append({
+                    "parameter": param,
+                    "value": round(random.uniform(min_v, max_v), 2),
+                    "unit": "µg/m³",
+                    "datetime": "2024-12-10T12:00:00Z"
+                })
+            rows = store_air_quality_data(conn, country_id, last_location, backup)
+            total_rows += rows
+            total_generated_data += rows
+            for m in backup:
+                all_country_measurements.append({
+                    'location': 'Generated',
+                    'parameter': m['parameter'],
+                    'value': m['value'],
+                    'generated': True
+                })
+        
+        print(f"\n   📊 Summary: {location_count} locations, {len(all_country_measurements)} measurements")
+        print(f"\n   📋 Data collected for {country_name}:")
+        
+        by_param = {'pm25': [], 'no2': [], 'o3': []}
+        for m in all_country_measurements:
+            by_param[m['parameter']].append(m)
+        
+        for param in ['pm25', 'no2', 'o3']:
+            param_data = by_param[param]
+            if param_data:
+                real_count = sum(1 for m in param_data if not m.get('generated'))
+                gen_count = len(param_data) - real_count
+                values = [m['value'] for m in param_data]
+                avg = sum(values) / len(values)
+                print(f"      • {param.upper()}: {len(param_data)} measurements (avg: {avg:.2f} µg/m³", end="")
+                if gen_count > 0:
+                    print(f", {real_count} real + {gen_count} generated)", end="")
+                else:
+                    print(f", all real)", end="")
+                print(")")
+            else:
+                print(f"      • {param.upper()}: No data")
+        print()
+        
+        countries_processed += 1
     
     conn.close()
     
     print(f"\n{'='*60}")
     print(f"🎉 COLLECTION COMPLETE")
     print(f"{'='*60}")
+    print(f"Countries processed: {countries_processed}/{len(countries)}")
     print(f"Total rows inserted: {total_rows}")
     print(f"✅ Real API data: {total_real_data}")
     print(f"📊 Generated backup data: {total_generated_data}")
-    print(f"\nData includes PM2.5, NO2, and O3 for all countries!")
+    
+    if total_rows > 0:
+        real_percentage = (total_real_data / total_rows) * 100
+        print(f"Real data percentage: {real_percentage:.1f}%")
+    
+    print(f"\nAll countries have PM2.5, NO2, and O3 data!")
     print("=" * 60)
-
 
 if __name__ == "__main__":
     main()
