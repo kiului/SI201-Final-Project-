@@ -8,7 +8,8 @@ It manages the economic_data table and uses the shared countries table.
 Run this script 4 times to collect 100+ economic data points (25 items per run).
 """
 
-## this code below removes indicator id and indicator name 
+#this code contains indicator id and indicator name
+
 import requests
 import sqlite3
 from datetime import datetime
@@ -82,7 +83,6 @@ def create_economic_table(conn):
     """
     Creates economic_data table if it doesn't exist.
     Uses UNIQUE constraint to prevent duplicate entries.
-    Table now only contains: country_id, year, value
     
     Input: SQLite connection object
     Output: None (creates table in database)
@@ -90,18 +90,17 @@ def create_economic_table(conn):
     """
     cursor = conn.cursor()
     
-    # Check if table exists
+    # Check if table exists and has UNIQUE constraint
     cursor.execute("""
         SELECT sql FROM sqlite_master 
         WHERE type='table' AND name='economic_data'
     """)
     result = cursor.fetchone()
     
-<<<<<<< HEAD
     # If table doesn't exist OR doesn't have UNIQUE constraint, recreate it
     if result is None or 'UNIQUE' not in result[0]:
         cursor.execute("DROP TABLE IF EXISTS economic_data")
-        print("✓ Recreating economic_data table with UNIQUE constraint")
+        print(" Recreating economic_data table with UNIQUE constraint")
         
         cursor.execute("""
             CREATE TABLE economic_data (
@@ -116,23 +115,7 @@ def create_economic_table(conn):
             )
         """)
     else:
-        print("Economic_data table already exists with UNIQUE constraint")
-=======
-    # Drop and recreate table to ensure correct schema
-    cursor.execute("DROP TABLE IF EXISTS economic_data")
-    print("✓ Creating economic_data table with simplified schema")
-    
-    cursor.execute("""
-        CREATE TABLE economic_data (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            country_id INTEGER NOT NULL,
-            year INTEGER NOT NULL,
-            value REAL,
-            FOREIGN KEY (country_id) REFERENCES countries(country_id),
-            UNIQUE (country_id, year)
-        )
-    """)
->>>>>>> 6889e41e1100276a95bd138d0e10524acbee140d
+        print(" Economic_data table already exists with UNIQUE constraint")
     
     conn.commit()
 
@@ -188,7 +171,7 @@ def fetch_indicator(indicator_id, country_code, year):
         response = requests.get(url, params=params)
         
         if response.status_code != 200:
-            print(f"Request failed for {country_code}: Status {response.status_code}")
+            print(f"✗ Request failed for {country_code}: Status {response.status_code}")
             return None
         
         data = response.json()
@@ -203,6 +186,10 @@ def fetch_indicator(indicator_id, country_code, year):
         for item in entries:
             if item["date"] == str(year):
                 return {
+                    "country_name": item["country"]["value"],
+                    "country_code": item["countryiso3code"],
+                    "indicator_id": item["indicator"]["id"],
+                    "indicator_name": item["indicator"]["value"],
                     "year": int(item["date"]),
                     "value": item["value"]
                 }
@@ -210,12 +197,9 @@ def fetch_indicator(indicator_id, country_code, year):
         return None
         
     except Exception as e:
-<<<<<<< HEAD
-        print(f"Exception fetching data for {country_code} {year}: {e}")
-=======
         print(f" Exception fetching data for {country_code} {year}: {e}")
->>>>>>> 6889e41e1100276a95bd138d0e10524acbee140d
         return None
+
 
 
 # FUNCTION 4: Store Economic Data in Database
@@ -236,10 +220,12 @@ def store_economic_data(conn, country_id, economic_dict):
     try:
         cursor.execute("""
             INSERT INTO economic_data 
-            (country_id, year, value)
-            VALUES (?, ?, ?)
+            (country_id, indicator_id, indicator_name, year, value)
+            VALUES (?, ?, ?, ?, ?)
         """, (
             country_id,
+            economic_dict["indicator_id"],
+            economic_dict["indicator_name"],
             economic_dict["year"],
             economic_dict["value"]
         ))
@@ -295,7 +281,8 @@ def main():
         SELECT c.country_code_3, e.year 
         FROM economic_data e
         JOIN countries c ON e.country_id = c.country_id
-    ''')
+        WHERE e.indicator_id = ?
+    ''', (INDICATOR_ID,))
     collected_pairs = set(cursor.fetchall())
     
     # Collect new economic data
@@ -316,7 +303,7 @@ def main():
         economic_data = fetch_indicator(INDICATOR_ID, country_code, year)
         
         if economic_data is None:
-            print(" No data available")
+            print("✗ No data available")
             continue
         
         # Get country_id from countries table
@@ -332,10 +319,10 @@ def main():
         if inserted:
             items_collected += 1
             value_str = f"${economic_data['value']:,.2f}" if economic_data['value'] else "N/A"
-            print(f" Stored ({items_collected}/{items_to_collect_this_run})")
+            print(f"Stored ({items_collected}/{items_to_collect_this_run})")
             print(f"   GDP per capita: {value_str}")
         else:
-            print(" Duplicate (skipped)")
+            print("Duplicate (skipped)")
     
     # Final summary
     print()
@@ -349,7 +336,7 @@ def main():
     
     if final_count >= 100:
         print()
-        print(" Successfully collected 100 economic data points")
+        print("Successfully collected 100+ economic data points")
     else:
         remaining = 100 - final_count
         runs_needed = (remaining + 24) // 25
@@ -365,9 +352,7 @@ if __name__ == "__main__":
     main()
 
 
-
-#this code contains indicator id and indicator name
-
+## this code below removes indicator id and indicator name 
 # import requests
 # import sqlite3
 # from datetime import datetime
@@ -441,6 +426,7 @@ if __name__ == "__main__":
 #     """
 #     Creates economic_data table if it doesn't exist.
 #     Uses UNIQUE constraint to prevent duplicate entries.
+#     Table now only contains: country_id, year, value
     
 #     Input: SQLite connection object
 #     Output: None (creates table in database)
@@ -448,7 +434,7 @@ if __name__ == "__main__":
 #     """
 #     cursor = conn.cursor()
     
-#     # Check if table exists and has UNIQUE constraint
+#     # Check if table exists
 #     cursor.execute("""
 #         SELECT sql FROM sqlite_master 
 #         WHERE type='table' AND name='economic_data'
@@ -458,7 +444,7 @@ if __name__ == "__main__":
 #     # If table doesn't exist OR doesn't have UNIQUE constraint, recreate it
 #     if result is None or 'UNIQUE' not in result[0]:
 #         cursor.execute("DROP TABLE IF EXISTS economic_data")
-#         print(" Recreating economic_data table with UNIQUE constraint")
+#         print("✓ Recreating economic_data table with UNIQUE constraint")
         
 #         cursor.execute("""
 #             CREATE TABLE economic_data (
@@ -473,7 +459,7 @@ if __name__ == "__main__":
 #             )
 #         """)
 #     else:
-#         print(" Economic_data table already exists with UNIQUE constraint")
+#         print("Economic_data table already exists with UNIQUE constraint")
     
 #     conn.commit()
 
@@ -529,7 +515,7 @@ if __name__ == "__main__":
 #         response = requests.get(url, params=params)
         
 #         if response.status_code != 200:
-#             print(f"✗ Request failed for {country_code}: Status {response.status_code}")
+#             print(f"Request failed for {country_code}: Status {response.status_code}")
 #             return None
         
 #         data = response.json()
@@ -544,10 +530,6 @@ if __name__ == "__main__":
 #         for item in entries:
 #             if item["date"] == str(year):
 #                 return {
-#                     "country_name": item["country"]["value"],
-#                     "country_code": item["countryiso3code"],
-#                     "indicator_id": item["indicator"]["id"],
-#                     "indicator_name": item["indicator"]["value"],
 #                     "year": int(item["date"]),
 #                     "value": item["value"]
 #                 }
@@ -555,9 +537,8 @@ if __name__ == "__main__":
 #         return None
         
 #     except Exception as e:
-#         print(f" Exception fetching data for {country_code} {year}: {e}")
+#         print(f"Exception fetching data for {country_code} {year}: {e}")
 #         return None
-
 
 
 # # FUNCTION 4: Store Economic Data in Database
@@ -578,12 +559,10 @@ if __name__ == "__main__":
 #     try:
 #         cursor.execute("""
 #             INSERT INTO economic_data 
-#             (country_id, indicator_id, indicator_name, year, value)
-#             VALUES (?, ?, ?, ?, ?)
+#             (country_id, year, value)
+#             VALUES (?, ?, ?)
 #         """, (
 #             country_id,
-#             economic_dict["indicator_id"],
-#             economic_dict["indicator_name"],
 #             economic_dict["year"],
 #             economic_dict["value"]
 #         ))
@@ -639,8 +618,7 @@ if __name__ == "__main__":
 #         SELECT c.country_code_3, e.year 
 #         FROM economic_data e
 #         JOIN countries c ON e.country_id = c.country_id
-#         WHERE e.indicator_id = ?
-#     ''', (INDICATOR_ID,))
+#     ''')
 #     collected_pairs = set(cursor.fetchall())
     
 #     # Collect new economic data
@@ -661,7 +639,7 @@ if __name__ == "__main__":
 #         economic_data = fetch_indicator(INDICATOR_ID, country_code, year)
         
 #         if economic_data is None:
-#             print("✗ No data available")
+#             print(" No data available")
 #             continue
         
 #         # Get country_id from countries table
@@ -677,10 +655,10 @@ if __name__ == "__main__":
 #         if inserted:
 #             items_collected += 1
 #             value_str = f"${economic_data['value']:,.2f}" if economic_data['value'] else "N/A"
-#             print(f"Stored ({items_collected}/{items_to_collect_this_run})")
+#             print(f" Stored ({items_collected}/{items_to_collect_this_run})")
 #             print(f"   GDP per capita: {value_str}")
 #         else:
-#             print("Duplicate (skipped)")
+#             print(" Duplicate (skipped)")
     
 #     # Final summary
 #     print()
@@ -694,7 +672,7 @@ if __name__ == "__main__":
     
 #     if final_count >= 100:
 #         print()
-#         print("Successfully collected 100+ economic data points")
+#         print(" Successfully collected 100 economic data points")
 #     else:
 #         remaining = 100 - final_count
 #         runs_needed = (remaining + 24) // 25
