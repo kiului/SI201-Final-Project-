@@ -12,10 +12,6 @@ import requests
 import sqlite3
 from datetime import datetime
 
-# ============================================================================
-# CONFIGURATION
-# ============================================================================
-
 BASE_URL = "https://api.worldbank.org/v2/country"
 DATABASE_PATH = "final_data.db"
 
@@ -79,9 +75,7 @@ DATA_TO_COLLECT = [
 ]
 
 
-# ============================================================================
 # FUNCTION 1: Create Economic Data Table
-# ============================================================================
 
 def create_economic_table(conn):
     """
@@ -124,9 +118,7 @@ def create_economic_table(conn):
     conn.commit()
 
 
-# ============================================================================
 # FUNCTION 2: Get Country ID from Database
-# ============================================================================
 
 def get_country_id(conn, country_code_3):
     """
@@ -152,9 +144,7 @@ def get_country_id(conn, country_code_3):
     return result[0]
 
 
-# ============================================================================
 # FUNCTION 3: Fetch Economic Indicator from World Bank API
-# ============================================================================
 
 def fetch_indicator(indicator_id, country_code, year):
     """
@@ -209,9 +199,8 @@ def fetch_indicator(indicator_id, country_code, year):
         return None
 
 
-# ============================================================================
+
 # FUNCTION 4: Store Economic Data in Database
-# ============================================================================
 
 def store_economic_data(conn, country_id, economic_dict):
     """
@@ -246,10 +235,6 @@ def store_economic_data(conn, country_id, economic_dict):
         # Duplicate entry - UNIQUE constraint violation
         return False
 
-
-# ============================================================================
-# MAIN FUNCTION
-# ============================================================================
 
 def main():
     """
