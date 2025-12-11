@@ -1,7 +1,8 @@
 """
 SI 201 Final Project - OpenWeather Data Collection
+Member 1's File: openweather_fetch.py
 
-This code fetches weather data from OpenWeather API and stores it in SQLite database.
+This script fetches weather data from OpenWeather API and stores it in SQLite database.
 It creates all database tables and manages the countries lookup table.
 
 Run this script 4 times to collect 100+ weather data points (25 cities per run).
@@ -25,7 +26,7 @@ DATABASE_PATH = "final_data.db"
 # 96 cities across 32 countries for comprehensive spatial coverage
 CITIES_TO_COLLECT = [
     # United States (10)
-    ("Las Vegas", "US"),  
+    ("Boston", "US"),  # Washington DC
     ("New York", "US"),
     ("Los Angeles", "US"),
     ("Chicago", "US"),
@@ -94,7 +95,7 @@ CITIES_TO_COLLECT = [
     ("Hobart", "AU"),
     ("Darwin", "AU"),
     ("Gold Coast", "AU"),
-    ("Newcastle", "AU"),
+    ("Cairns", "AU"),
 
     # Germany (10)
     ("Berlin", "DE"),
@@ -143,7 +144,7 @@ CITIES_TO_COLLECT = [
     ("Ulsan", "KR"),
     ("Jeonju", "KR"),
     ("Changwon", "KR"),
-    ]
+]
 
 # Country information with both 2-letter and 3-letter codes
 # 2-letter codes: Used by OpenWeather and OpenAQ APIs
@@ -160,6 +161,7 @@ COUNTRY_INFO = {
     "JP": {"name": "Japan", "iso3": "JPN"},
     "KR": {"name": "South Korea", "iso3": "KOR"},
 }
+
 
 
 
@@ -403,7 +405,7 @@ def main():
     print(f"Current weather data records in database: {existing_count}")
     
     # How many items to collect this run (fixed cap, no total target)
-    items_to_collect_this_run = len(CITIES_TO_COLLECT)
+    items_to_collect_this_run = 25
     print(f"Will collect up to {items_to_collect_this_run} new records this run (if available).")
     print()
     print("-" * 60)
