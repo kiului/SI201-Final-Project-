@@ -10,7 +10,6 @@ import sqlite3
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-
 from adjustText import adjust_text
 
 DATABASE_PATH = "final_data.db"
