@@ -7,7 +7,7 @@ from collections import defaultdict
 API_KEY = "b93b8a75a83fd2286b29961a532025b2f7532f865f0071530fef3b14dccf2a24"   
 BASE_URL = "https://api.openaq.org/v3"
 
-
+# Fixed: Use the countries you actually want (JP, KR, TH instead of FR, ES, PL)
 REQUIRED_COUNTRIES = [
     ("US", "United States"),
     ("IN", "India"),
@@ -16,9 +16,9 @@ REQUIRED_COUNTRIES = [
     ("BR", "Brazil"),
     ("AU", "Australia"),
     ("DE", "Germany"),
-    ("JP", "Japan"),       
-    ("KR", "South Korea"),  
-    ("TH", "Thailand")      
+    ("JP", "Japan"),        # Changed from FR
+    ("KR", "South Korea"),  # Changed from ES
+    ("TH", "Thailand")      # Changed from PL
 ]
 
 PARAM_IDS = {
@@ -28,24 +28,31 @@ PARAM_IDS = {
 }
 
 MIN_DELAY = 0.5
-MAX_ROWS_PER_RUN = 25 
+MAX_ROWS_PER_RUN = 25  # Added limit
 session = requests.Session()
 session.headers.update({"X-API-Key": API_KEY})
 
-def reset_database(conn):
+def reset_database(conn, auto_confirm=False):
     """Clear all air quality data to start fresh."""
     cursor = conn.cursor()
-    print("\nWARNING: This will delete all air quality data!")
-    response = input("Type 'YES' to confirm reset: ")
     
-    if response == "YES":
-        cursor.execute("DELETE FROM air_quality_data")
-        conn.commit()
-        print("Database reset complete!\n")
-        return True
-    else:
-        print("Reset cancelled.\n")
-        return False
+    if not auto_confirm:
+        print("\nWARNING: This will delete all air quality data!")
+        try:
+            response = input("Type 'YES' to confirm reset: ")
+        except (EOFError, OSError):
+            print("Cannot get input in this environment.")
+            print("To reset: delete 'final_data.db' file or call reset_database(conn, auto_confirm=True)")
+            return False
+        
+        if response != "YES":
+            print("Reset cancelled.\n")
+            return False
+    
+    cursor.execute("DELETE FROM air_quality_data")
+    conn.commit()
+    print("Database reset complete!\n")
+    return True
 
 def setup_database(conn):
     """Creates tables - ONE ROW PER LOCATION with all measurements."""
@@ -298,14 +305,8 @@ def main():
     
     if current_count > 0:
         print(f"\nYou already have {current_count} rows!")
-        print("   Do you want to reset and start fresh?")
-        choice = input("   Type 'YES' to reset, or press Enter to continue: ")
-        if choice == "YES":
-            if reset_database(conn):
-                current_count = 0
-            else:
-                conn.close()
-                return
+        print("   Continuing with existing data...")
+        print("   (To reset, call reset_database(conn) manually or delete the .db file)\n")
     
     country_counts = get_country_row_counts(conn)
     print(f"\nCurrent distribution by country:")
@@ -326,7 +327,7 @@ def main():
     for country_code, country_name in REQUIRED_COUNTRIES:
         # Check if we've hit the per-run limit
         if total_rows_added >= MAX_ROWS_PER_RUN:
-            print(f"\n Reached {MAX_ROWS_PER_RUN} row limit for this run.")
+            print(f"\n⚠️  Reached {MAX_ROWS_PER_RUN} row limit for this run.")
             print(f"   Run the script again to continue collecting data.")
             break
         
@@ -339,7 +340,7 @@ def main():
                       (country_code,))
         result = cursor.fetchone()
         if not result:
-            print(f"    Country not in database, skipping...\n")
+            print(f"   ⚠️  Country not in database, skipping...\n")
             continue
         country_id = result[0]
         
@@ -361,7 +362,7 @@ def main():
         locations = fetch_locations(country_code, limit=50)
         
         if not locations:
-            print(f"   No API locations found\n")
+            print(f"   ❌ No API locations found\n")
             continue
         
         # Score and sort locations by data availability
@@ -370,7 +371,7 @@ def main():
         good_locations = [loc for score, loc in scored_locations if score > 0]
         
         if not good_locations:
-            print(f"   No locations with target parameters\n")
+            print(f"   ❌ No locations with target parameters\n")
             continue
         
         print(f"   Found {len(good_locations)} locations with data")
@@ -411,7 +412,7 @@ def main():
                 
                 # Check if we've hit the run limit
                 if total_rows_added >= MAX_ROWS_PER_RUN:
-                    print(f"\n   Reached {MAX_ROWS_PER_RUN} row limit for this run")
+                    print(f"\n   ⚠️  Reached {MAX_ROWS_PER_RUN} row limit for this run")
                     break
         
         print(f"   ✓ Collected {locations_added} locations for {country_name}\n")
@@ -438,9 +439,9 @@ def main():
         print(f"   {country_name:20s} ({code}): {count:3d} locations {status}")
     
     if final_count >= 100:
-        print(f"\n TARGET REACHED! Database complete with 100 locations.")
+        print(f"\n🎉 TARGET REACHED! Database complete with 100 locations.")
     elif total_rows_added >= MAX_ROWS_PER_RUN:
-        print(f"\n  Run limit reached. Run the script again to continue.")
+        print(f"\n⏸️  Run limit reached. Run the script again to continue.")
     
     print("=" * 60)
     
