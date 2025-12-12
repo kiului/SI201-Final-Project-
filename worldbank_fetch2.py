@@ -5,7 +5,7 @@ Member's File: worldbank_fetch.py
 This script fetches economic data from World Bank API and stores it in SQLite database.
 It manages the economic_data table and uses the shared countries table.
 
-Run this script 4 times to collect 100+ economic data points (25 items per run).
+Run this script 4 times to collect 100 economic data points (25 items per run).
 """
 
 #this code contains indicator id and indicator name
@@ -331,7 +331,7 @@ def main():
     
     if final_count >= 100:
         print()
-        print("Successfully collected 100+ economic data points")
+        print("Successfully collected 100 economic data points")
     else:
         remaining = 100 - final_count
         runs_needed = (remaining + 24) // 25
