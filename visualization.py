@@ -105,12 +105,11 @@ def visualization_2_air_quality_bar_chart(conn, output_path='viz2_air_quality.pn
     query = """
     SELECT 
         c.country_name,
-        AVG(a.value) as avg_pm25
+        AVG(a.pm25_value) as avg_pm25
     FROM countries c
     JOIN air_quality_data a ON c.country_id = a.country_id
     JOIN weather_data w ON c.country_id = w.country_id
     JOIN economic_data e ON c.country_id = e.country_id
-    WHERE a.parameter = 'pm25'
     GROUP BY c.country_name
     ORDER BY avg_pm25 ASC
     """
@@ -166,14 +165,14 @@ def visualization_3_gdp_scatter(conn, output_path='viz3_gdp_vs_pollution.png'):
     query = """
     SELECT 
         c.country_name,
-        AVG(a.value) as avg_pm25,
+        AVG(a.pm25_value) as avg_pm25,
         e.value as gdp_per_capita,
         AVG(w.temperature) as avg_temperature
     FROM countries c
     JOIN air_quality_data a ON c.country_id = a.country_id
     JOIN economic_data e ON c.country_id = e.country_id
     JOIN weather_data w ON c.country_id = w.country_id
-    WHERE a.parameter = 'pm25' AND e.indicator_id = 'NY.GDP.PCAP.CD'
+    WHERE e.indicator_id = 'NY.GDP.PCAP.CD'
     GROUP BY c.country_name
     """
 
@@ -245,6 +244,123 @@ def visualization_3_gdp_scatter(conn, output_path='viz3_gdp_vs_pollution.png'):
     print(f"✓ Visualization 3 saved to {output_path}")
     plt.close()
 
+def visualization_4_gdp_trend_top_polluters(conn, output_path='viz4_gdp_trend.png'):
+    """
+    Visualization 4: GDP Trend Over Time for Top 3 Most Polluting Countries
+    
+    Countries: India, China, South Korea
+    Shows how GDP per capita changes over time.
+    """
+
+    query = """
+    SELECT 
+        c.country_name,
+        e.year,
+        e.value AS gdp_per_capita
+    FROM countries c
+    JOIN economic_data e ON c.country_id = e.country_id
+    WHERE e.indicator_id = 'NY.GDP.PCAP.CD'
+      AND c.country_name IN ('India', 'China', 'South Korea')
+    ORDER BY e.year
+    """
+
+    df = pd.read_sql_query(query, conn)
+
+    fig, ax = plt.subplots(figsize=(11, 7))
+
+    # Plot GDP trend for each country
+    for country in df['country_name'].unique():
+        country_df = df[df['country_name'] == country]
+        ax.plot(
+            country_df['year'],
+            country_df['gdp_per_capita'],
+            marker='o',
+            linewidth=2.5,
+            label=country
+        )
+
+    ax.set_xlabel('Year', fontsize=12, fontweight='bold')
+    ax.set_ylabel('GDP Per Capita (USD)', fontsize=12, fontweight='bold')
+    ax.set_title(
+        'GDP Per Capita Trends Over Time\nTop 3 Most Polluting Countries',
+        fontsize=14,
+        fontweight='bold',
+        pad=20
+    )
+
+    ax.legend(title='Country')
+    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.set_axisbelow(True)
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    print(f"✓ Visualization 4 saved to {output_path}")
+    plt.close()
+
+def visualization_5_temp_vs_pm25(conn, output_path='viz5_temp_vs_pm25.png'):
+    """
+    Visualization 5: Average Temperature vs PM2.5 (Scatter Plot)
+    
+    Explores relationship between climate and air pollution.
+    """
+
+    query = """
+    SELECT 
+        c.country_name,
+        AVG(w.temperature) as avg_temperature,
+        AVG(a.pm25_value) as avg_pm25
+    FROM countries c
+    JOIN weather_data w ON c.country_id = w.country_id
+    JOIN air_quality_data a ON c.country_id = a.country_id
+    GROUP BY c.country_name
+    """
+
+    df = pd.read_sql_query(query, conn)
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    ax.scatter(
+        df['avg_temperature'],
+        df['avg_pm25'],
+        s=180,
+        color="#00B894",
+        edgecolors='black',
+        linewidth=1,
+        alpha=0.75
+    )
+
+    # Label each point
+    for _, row in df.iterrows():
+        ax.text(
+            row['avg_temperature'],
+            row['avg_pm25'],
+            row['country_name'],
+            fontsize=9,
+            ha='center',
+            va='bottom'
+        )
+
+    ax.set_xlabel('Average Temperature (°C)', fontsize=12, fontweight='bold')
+    ax.set_ylabel('Average PM2.5 Level (µg/m³)', fontsize=12, fontweight='bold')
+    ax.set_title(
+        'Average Temperature vs Air Pollution (PM2.5)\n(All 10 Countries)',
+        fontsize=14, fontweight='bold',
+        pad=20
+    )
+
+    ax.axhline(15, color='red', linestyle='--', alpha=0.6, label='WHO PM2.5 Guideline')
+    ax.legend()
+
+    ax.grid(True, alpha=0.3, linestyle='--')
+    ax.set_axisbelow(True)
+
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    print(f"✓ Visualization 5 saved to {output_path}")
+    plt.close()
+
+
+
 def main():
     """
     Main function that creates all 3 visualizations.
@@ -280,6 +396,19 @@ def main():
     print("Creating Visualization 3: GDP vs Pollution Scatter Plot...")
     visualization_3_gdp_scatter(conn)
     print()
+
+    # Create Visualization 4
+    print("Creating Visualization 4: GDP Trend for Top Polluting Countries...")
+    visualization_4_gdp_trend_top_polluters(conn)
+    print()
+
+    # Create Visualization 5
+    print("Creating Visualization 5: Temperature vs PM2.5 Scatter...")
+    visualization_5_temp_vs_pm25(conn)
+    print()
+
+
+
     
     # Close connection
     conn.close()
@@ -290,6 +419,8 @@ def main():
     print("  - viz1_temperature.png")
     print("  - viz2_air_quality.png")
     print("  - viz3_gdp_vs_pollution.png")
+    print("  - viz4_gdp_trend.png")
+    print("  - viz5_temp_vs_pm25.png")
     print("=" * 70)
 
 
