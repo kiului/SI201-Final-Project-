@@ -177,8 +177,7 @@ def visualization_4_gdp_trend_top_polluters(conn, output_path='viz4_gdp_trend.pn
         e.value AS gdp_per_capita
     FROM countries c
     JOIN economic_data e ON c.country_id = e.country_id
-    WHERE e.indicator_id = 'NY.GDP.PCAP.CD'
-      AND c.country_name IN ('India', 'China', 'South Korea')
+    WHERE c.country_name IN ('India', 'China', 'South Korea')
     ORDER BY e.year
     """
     df = pd.read_sql_query(query, conn)
