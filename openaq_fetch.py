@@ -69,11 +69,12 @@ def setup_database(conn):
                 country_name TEXT NOT NULL
             )
         """)
-        
-        cursor.executemany(
-            "INSERT OR IGNORE INTO countries (country_code, country_name) VALUES (?, ?)", 
-            REQUIRED_COUNTRIES
-        )
+    
+    # Always insert or update all required countries
+    cursor.executemany(
+        "INSERT OR IGNORE INTO countries (country_code, country_name) VALUES (?, ?)", 
+        REQUIRED_COUNTRIES
+    )
     
     # Check if air_quality_data exists and drop if it has old structure
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='air_quality_data'")
@@ -81,9 +82,52 @@ def setup_database(conn):
         cursor.execute("PRAGMA table_info(air_quality_data)")
         columns = [row[1] for row in cursor.fetchall()]
         
-        if 'parameter' in columns:
+        # Check if we need to recreate the table (old structure or has unwanted columns)
+        if 'parameter' in columns or 'datetime_utc' in columns or 'city' in columns:
             print("⚠️  Detected old table structure. Recreating table...")
+            
+            # Save existing data if we're just removing columns
+            if 'parameter' not in columns:
+                cursor.execute("""
+                    CREATE TEMPORARY TABLE air_quality_backup AS
+                    SELECT country_id, location_id, location_name, latitude, longitude,
+                           pm25_value, no2_value, o3_value
+                    FROM air_quality_data
+                """)
+                has_backup = True
+            else:
+                has_backup = False
+            
             cursor.execute("DROP TABLE air_quality_data")
+            
+            # Recreate with new structure
+            cursor.execute("""
+                CREATE TABLE air_quality_data (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    country_id INTEGER NOT NULL,
+                    location_id INTEGER,
+                    location_name TEXT,
+                    latitude REAL,
+                    longitude REAL,
+                    pm25_value REAL,
+                    no2_value REAL,
+                    o3_value REAL,
+                    FOREIGN KEY (country_id) REFERENCES countries(country_id)
+                )
+            """)
+            
+            # Restore data if we had a backup
+            if has_backup:
+                cursor.execute("""
+                    INSERT INTO air_quality_data 
+                    (country_id, location_id, location_name, latitude, longitude,
+                     pm25_value, no2_value, o3_value)
+                    SELECT country_id, location_id, location_name, latitude, longitude,
+                           pm25_value, no2_value, o3_value
+                    FROM air_quality_backup
+                """)
+                cursor.execute("DROP TABLE air_quality_backup")
+                print(f"✓ Table recreated and data preserved")
     
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='air_quality_data'")
     if not cursor.fetchone():
@@ -93,13 +137,11 @@ def setup_database(conn):
                 country_id INTEGER NOT NULL,
                 location_id INTEGER,
                 location_name TEXT,
-                city TEXT,
                 latitude REAL,
                 longitude REAL,
                 pm25_value REAL,
                 no2_value REAL,
                 o3_value REAL,
-                datetime_utc TEXT,
                 FOREIGN KEY (country_id) REFERENCES countries(country_id)
             )
         """)
@@ -274,24 +316,21 @@ def store_air_quality_data(conn, country_id, location_info, measurements):
     coords = location_info.get("coordinates", {})
     latitude = coords.get("latitude")
     longitude = coords.get("longitude")
-    city = location_info.get("locality") or location_info.get("country", {}).get("name", "Unknown")
     
     cursor.execute("""
         INSERT INTO air_quality_data 
-        (country_id, location_id, location_name, city, latitude, longitude, 
-         pm25_value, no2_value, o3_value, datetime_utc)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (country_id, location_id, location_name, latitude, longitude, 
+         pm25_value, no2_value, o3_value)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         country_id,
         location_id,
         location_name,
-        city,
         latitude,
         longitude,
         measurements.get('pm25'),
         measurements.get('no2'),
-        measurements.get('o3'),
-        measurements.get('datetime')
+        measurements.get('o3')
     ))
     
     conn.commit()
