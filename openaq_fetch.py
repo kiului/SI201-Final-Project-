@@ -7,31 +7,7 @@ from datetime import datetime
 
 API_KEY = "b93b8a75a83fd2286b29961a532025b2f7532f865f0071530fef3b14dccf2a24"   
 
-#BASE_URL = "https://api.openaq.org/v3/locations/2178"  
-
-
 BASE_URL = "https://api.openaq.org/v3"
-
-
-#headers = {
-    #"X-API-Key": API_KEY
-#}
-
-# Optional: add params depending on what you want
-#params = {
-    # leave empty or add things like limit/page if the endpoint supports it
-#}
-
-#response = requests.get(BASE_URL, headers=headers, params=params)
-
-#print("Status code:", response.status_code)
-
-#if response.status_code != 200:
-   #print("Request failed:")
-    #print(response.text)
-#else:
-    #data = response.json()
-    #print(json.dumps(data, indent=4))
 
 # Parameter IDs we want
 PARAM_IDS = {
@@ -71,13 +47,11 @@ def setup_database(conn):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 country_id INTEGER NOT NULL,
                 location_id INTEGER,
-                location_name TEXT,
                 latitude REAL,
                 longitude REAL,
                 parameter TEXT,
                 value REAL,
                 unit TEXT,
-                datetime_utc TEXT,
                 FOREIGN KEY (country_id) REFERENCES countries(country_id)
             )
         """)
@@ -186,7 +160,6 @@ def store_air_quality_data(conn, country_id, location_info, measurements):
     rows_inserted = 0
     
     location_id = location_info.get("id")
-    location_name = location_info.get("name", "Unknown")
     coords = location_info.get("coordinates", {})
     latitude = coords.get("latitude")
     longitude = coords.get("longitude")
@@ -194,18 +167,17 @@ def store_air_quality_data(conn, country_id, location_info, measurements):
     for measurement in measurements:
         cursor.execute("""
             INSERT INTO air_quality_data 
-            (country_id, location_id, location_name, latitude, longitude, 
+            (country_id, location_id, latitude, longitude, 
              parameter, value, unit)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             country_id,
             location_id,
-            location_name,
             latitude,
             longitude,
             measurement["parameter"],
             measurement["value"],
-            measurement["unit"],
+            measurement["unit"]
         ))
         rows_inserted += 1
     
@@ -343,7 +315,7 @@ def main():
                 measurements = generate_backup_measurements(country_code, j)
                 rows = store_air_quality_data(conn, country_id, location_info, measurements)
                 total_rows_added += rows
-                print(f"   ✓ Generated {rows} rows")
+                print(f"    Generated {rows} rows")
             continue
         
         # Filter and score locations
@@ -378,7 +350,7 @@ def main():
                     rows = store_air_quality_data(conn, country_id, location, measurements)
                     total_rows_added += rows
                     params_found = [m['parameter'] for m in measurements]
-                    print(f"   ✓ {location_name[:40]}: +{rows} rows ({', '.join(params_found)})")
+                    print(f"    {location_name[:40]}: +{rows} rows ({', '.join(params_found)})")
                 else:
                     # Would exceed limit, skip this location
                     continue

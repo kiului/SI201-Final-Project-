@@ -206,14 +206,11 @@ def create_database_tables(conn):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             country_id INTEGER NOT NULL,
             location_id INTEGER,
-            location_name TEXT,
-            city TEXT,
             latitude REAL,
             longitude REAL,
             parameter TEXT,
             value REAL,
             unit TEXT,
-            datetime_utc TEXT,
             FOREIGN KEY (country_id) REFERENCES countries(country_id)
         )
     ''')
@@ -232,7 +229,7 @@ def create_database_tables(conn):
     ''')
     
     conn.commit()
-    print("✓ All database tables created successfully")
+    print(" All database tables created successfully")
 
 
 # FUNCTION 2: Get or Create Country ID
