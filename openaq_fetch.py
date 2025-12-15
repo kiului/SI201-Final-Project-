@@ -297,7 +297,7 @@ def main():
         locations = fetch_locations(API_KEY, country_code, limit=50)
         
         if not locations:
-            print(f"   ⚠️  No API locations, using backup data")
+            print(f"     No API locations, using backup data")
             # Generate just enough to not exceed limit
             rows_remaining = rows_needed - total_rows_added
             locations_to_gen = min(3, rows_remaining // 3)
