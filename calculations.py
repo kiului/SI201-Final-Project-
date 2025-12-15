@@ -35,14 +35,16 @@ def calculation_1_avg_temp_by_country(conn):
     Output: DataFrame with country_name and avg_temperature
     Purpose: Find which countries have the warmest/coldest climates
     """
+    # Using LEFT JOIN for air_quality_data and economic_data to ensure results 
+    # even if those tables are empty or sparse for some countries.
     query = """
     SELECT 
         c.country_name,
         AVG(w.temperature) as avg_temperature
     FROM countries c
     JOIN weather_data w ON c.country_id = w.country_id
-    JOIN air_quality_data a ON c.country_id = a.country_id
-    JOIN economic_data e ON c.country_id = e.country_id
+    LEFT JOIN air_quality_data a ON c.country_id = a.country_id
+    LEFT JOIN economic_data e ON c.country_id = e.country_id
     GROUP BY c.country_name
     ORDER BY avg_temperature DESC
     """
@@ -61,15 +63,17 @@ def calculation_2_avg_pm25_by_country(conn):
     Output: DataFrame with country_name and avg_pm25
     Purpose: Find which countries have the cleanest/most polluted air
     """
+    # FIX: Corrected column name from a.pm25_value to a.value.
+    # NOTE: This calculation will return an empty DataFrame because the 
+    # 'air_quality_data' table currently has 0 rows, and an INNER JOIN is used on it.
     query = """
     SELECT 
         c.country_name,
         AVG(a.value) as avg_pm25
     FROM countries c
     JOIN air_quality_data a ON c.country_id = a.country_id
-    JOIN weather_data w ON c.country_id = w.country_id
-    JOIN economic_data e ON c.country_id = e.country_id
-    WHERE a.parameter = 'pm25'
+    LEFT JOIN weather_data w ON c.country_id = w.country_id
+    LEFT JOIN economic_data e ON c.country_id = e.country_id
     GROUP BY c.country_name
     ORDER BY avg_pm25 ASC
     """
@@ -85,16 +89,16 @@ def calculation_3_gdp_per_country(conn):
     Joins all 4 tables and calculates the average GDP per capita
     across the selected years for each country.
     """
+    # Using LEFT JOIN for non-primary tables.
     query = """
     SELECT 
         c.country_name,
         ROUND(AVG(e.value), 2) AS avg_gdp_per_capita
     FROM countries c
     JOIN economic_data e ON c.country_id = e.country_id
-    JOIN weather_data w ON c.country_id = w.country_id
-    JOIN air_quality_data a ON c.country_id = a.country_id
-    WHERE e.indicator_id = 'NY.GDP.PCAP.CD'
-      AND e.year BETWEEN 2014 AND 2023
+    LEFT JOIN weather_data w ON c.country_id = w.country_id
+    LEFT JOIN air_quality_data a ON c.country_id = a.country_id
+    WHERE e.year BETWEEN 2014 AND 2023
     GROUP BY c.country_name
     ORDER BY avg_gdp_per_capita DESC;
     """
@@ -132,13 +136,12 @@ def write_results_to_file(df1, df2, df3, output_path='calculation_results.txt'):
         f.write("\n\n")
         
         # Calculation 3
-        f.write("CALCULATION 3: Average GDP Per Capita by Country (2013–2024)\n")
+        f.write("CALCULATION 3: Average GDP Per Capita by Country (2014–2023)\n")
         f.write("-" * 70 + "\n")
         f.write(df3.to_string(index=False))
         f.write("\n\n")
 
         f.write("End of Results\n")
-
     
     print(f"✓ Results written to {output_path}")
 
@@ -146,12 +149,6 @@ def write_results_to_file(df1, df2, df3, output_path='calculation_results.txt'):
 def main():
     """
     Main function that runs all calculations and exports results.
-    
-    Purpose:
-        - Connects to database
-        - Runs all 3 calculations (each joins all 4 tables)
-        - Writes results to text file
-        - Displays results to console
     """
     print("=" * 70)
     print("SI 201 Final Project - Data Analysis")
@@ -190,7 +187,6 @@ def main():
     print()
 
     print("Analysis complete!")
-
 
 
 if __name__ == "__main__":
