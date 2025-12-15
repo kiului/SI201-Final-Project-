@@ -194,20 +194,18 @@ def store_air_quality_data(conn, country_id, location_info, measurements):
     for measurement in measurements:
         cursor.execute("""
             INSERT INTO air_quality_data 
-            (country_id, location_id, location_name, city, latitude, longitude, 
-             parameter, value, unit, datetime_utc)
+            (country_id, location_id, location_name, latitude, longitude, 
+             parameter, value, unit)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             country_id,
             location_id,
             location_name,
-            city,
             latitude,
             longitude,
             measurement["parameter"],
             measurement["value"],
             measurement["unit"],
-            measurement["datetime"]
         ))
         rows_inserted += 1
     
