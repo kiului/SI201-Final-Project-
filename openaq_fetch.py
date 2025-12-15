@@ -168,7 +168,7 @@ def store_air_quality_data(conn, country_id, location_info, measurements):
         cursor.execute("""
             INSERT INTO air_quality_data 
             (country_id, location_id, latitude, longitude, 
-             parameter, value, unit)
+            parameter, value, unit)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             country_id,
