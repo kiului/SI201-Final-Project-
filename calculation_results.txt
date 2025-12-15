@@ -6,26 +6,23 @@ Team: Curious Finders
 CALCULATION 1: Average Temperature by Country
 ----------------------------------------------------------------------
   country_name  avg_temperature
-        Brazil           27.694
-      Thailand           23.163
-     Australia           20.563
-         India           16.707
- United States           14.383
-         China            8.004
-United Kingdom            5.997
-       Germany            4.736
-   South Korea            2.770
-         Japan            2.069
+      Thailand        29.111000
+         India        25.630000
+     Australia        23.473000
+        Brazil        23.005000
+         China        13.172000
+United Kingdom         9.038000
+         Japan         7.754000
+   South Korea         4.492222
+       Germany         2.820000
+ United States         1.548000
 
 CALCULATION 2: Average PM2.5 Air Quality by Country
 ----------------------------------------------------------------------
-  country_name  avg_pm25
- United States  5.176923
-     Australia 14.200000
-United Kingdom 26.036000
-        Brazil 29.280000
-         China 65.333333
-         India 99.100000
+ country_name  avg_pm25
+United States  5.651852
+        China 67.027778
+        India 92.435135
 
 CALCULATION 3: Average GDP Per Capita by Country (2014–2023)
 ----------------------------------------------------------------------

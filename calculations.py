@@ -35,8 +35,7 @@ def calculation_1_avg_temp_by_country(conn):
     Output: DataFrame with country_name and avg_temperature
     Purpose: Find which countries have the warmest/coldest climates
     """
-    # Using LEFT JOIN for air_quality_data and economic_data to ensure results 
-    # even if those tables are empty or sparse for some countries.
+  
     query = """
     SELECT 
         c.country_name,
@@ -143,7 +142,7 @@ def write_results_to_file(df1, df2, df3, output_path='calculation_results.txt'):
 
         f.write("End of Results\n")
     
-    print(f"✓ Results written to {output_path}")
+    print(f" Results written to {output_path}")
 
 
 def main():
@@ -158,7 +157,7 @@ def main():
     
     # Connect to database
     conn = connect_to_database()
-    print("✓ Connected to database")
+    print(" Connected to database")
     print()
     
     # Run Calculation 1

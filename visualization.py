@@ -63,7 +63,7 @@ def visualization_1_temperature_bar_chart(conn, output_path='viz1_temperature.pn
     
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    print(f"✓ Visualization 1 saved to {output_path}")
+    print(f" Visualization 1 saved to {output_path}")
     plt.close()
 
 
@@ -113,7 +113,7 @@ def visualization_2_air_quality_bar_chart(conn, output_path='viz2_air_quality.pn
     
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    print(f"✓ Visualization 2 saved to {output_path}")
+    print(f" Visualization 2 saved to {output_path}")
     plt.close()
 
 
@@ -162,7 +162,7 @@ def visualization_3_gdp_scatter(conn, output_path='viz3_gdp_vs_pollution.png'):
     
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    print(f"✓ Visualization 3 saved to {output_path}")
+    print(f" Visualization 3 saved to {output_path}")
     plt.close()
 
 
@@ -200,7 +200,7 @@ def visualization_4_gdp_trend_top_polluters(conn, output_path='viz4_gdp_trend.pn
     
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    print(f"✓ Visualization 4 saved to {output_path}")
+    print(f" Visualization 4 saved to {output_path}")
     plt.close()
 
 
@@ -240,7 +240,7 @@ def visualization_5_temp_vs_pm25(conn, output_path='viz5_temp_vs_pm25.png'):
     
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    print(f"✓ Visualization 5 saved to {output_path}")
+    print(f" Visualization 5 saved to {output_path}")
     plt.close()
 
 
@@ -252,7 +252,7 @@ def main():
     print("=" * 70)
     
     conn = connect_to_database()
-    print("✓ Connected to database\n")
+    print(" Connected to database\n")
     
     visualization_1_temperature_bar_chart(conn)
     visualization_2_air_quality_bar_chart(conn)
