@@ -46,10 +46,9 @@ def setup_database(conn):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 country_id INTEGER NOT NULL,
                 location_id TEXT UNIQUE,
-                location_name TEXT,
                 latitude REAL,
                 longitude REAL,
-                pm25_value REAL,
+                value REAL,
                 FOREIGN KEY (country_id) REFERENCES countries(country_id)
             )
         """)
@@ -152,7 +151,6 @@ def store_air_quality_data(conn, country_id, location_info, measurement):
     cursor = conn.cursor()
     
     location_id = location_info.get("id")
-    location_name = location_info.get("name", "Unknown")
     coords = location_info.get("coordinates", {})
     latitude = coords.get("latitude")
     longitude = coords.get("longitude")
@@ -164,12 +162,11 @@ def store_air_quality_data(conn, country_id, location_info, measurement):
     
     cursor.execute("""
         INSERT INTO air_quality_data 
-        (country_id, location_id, location_name, latitude, longitude, pm25_value)
-        VALUES (?, ?, ?, ?, ?, ?)
+        (country_id, location_id, latitude, longitude, value)
+        VALUES (?, ?, ?, ?, ?)
     """, (
         country_id,
         location_id,
-        location_name,
         latitude,
         longitude,
         measurement["value"]
@@ -227,7 +224,7 @@ def main():
     location_counts = get_country_location_counts(conn)
     print(f"\n Current locations by country:")
     for code, count in sorted(location_counts.items()):
-        status = "✓ COMPLETE" if count >= LOCATIONS_PER_COUNTRY else f"{count}/10"
+        status = "  COMPLETE" if count >= LOCATIONS_PER_COUNTRY else f"{count}/10"
         print(f"   {code}: {status}")
     
     # Prioritize countries with fewest locations
@@ -339,7 +336,7 @@ def main():
     print(f"\n Updated location counts:")
     for code in ["US", "IN", "CN", "GB", "BR", "AU", "DE", "TH", "KR", "JP"]:
         count = location_counts_updated.get(code, 0)
-        status = "✓ COMPLETE" if count >= LOCATIONS_PER_COUNTRY else f"{count}/10"
+        status = "  COMPLETE" if count >= LOCATIONS_PER_COUNTRY else f"{count}/10"
         print(f"   {code}: {status}")
     
     if final_count >= 100:
