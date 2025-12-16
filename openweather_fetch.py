@@ -208,9 +208,7 @@ def create_database_tables(conn):
             location_id INTEGER,
             latitude REAL,
             longitude REAL,
-            parameter TEXT,
             value REAL,
-            unit TEXT,
             FOREIGN KEY (country_id) REFERENCES countries(country_id)
         )
     ''')
