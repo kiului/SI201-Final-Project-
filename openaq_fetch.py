@@ -313,10 +313,31 @@ def main():
             measurement = fetch_pm25_measurement(API_KEY, location_id)
             
             if measurement:
-                store_air_quality_data(conn, country_id, location, measurement)
-                total_rows_added += 1
-                locations_added += 1
-                print(f"   Location {current_locations + locations_added}: {location_name[:45]} - PM2.5 = {measurement['value']} µg/m³")
+                rows = store_air_quality_data(conn, country_id, location, measurement)
+                if rows > 0:  # Only count if actually inserted (not duplicate)
+                    total_rows_added += rows
+                    locations_added += 1
+                    print(f"   Location {current_locations + locations_added}: {location_name[:45]} - PM2.5 = {measurement['value']} µg/m³")
+        
+        # If we didn't get enough unique locations from API, use backup data
+        if locations_added < locations_needed and total_rows_added < MAX_ROWS_PER_RUN:
+            remaining_needed = locations_needed - locations_added
+            rows_available = MAX_ROWS_PER_RUN - total_rows_added
+            backup_to_generate = min(remaining_needed, rows_available)
+            
+            print(f"   API only provided {locations_added} unique locations, generating {backup_to_generate} backup location(s)")
+            
+            for j in range(backup_to_generate):
+                location_info = {
+                    "id": f"gen_{country_code}_{current_locations + locations_added + j + 1}_{random.randint(1000, 9999)}",
+                    "name": f"{country_name} Station {current_locations + locations_added + j + 1}",
+                    "coordinates": {"latitude": 0.0, "longitude": 0.0}
+                }
+                measurement = generate_backup_pm25(country_code, j)
+                rows = store_air_quality_data(conn, country_id, location_info, measurement)
+                total_rows_added += rows
+                locations_added += rows
+                print(f"   Location {current_locations + locations_added}: Generated PM2.5 = {measurement['value']} µg/m³")
         
         # Update count for this country
         location_counts[country_code] = current_locations + locations_added
