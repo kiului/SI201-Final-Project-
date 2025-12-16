@@ -14,8 +14,7 @@ PARAM_IDS = {
     2: "pm25"   # PM2.5 only
 }
 
-# 10 LOCATIONS PER COUNTRY, 25 ROWS MAX PER RUN
-LOCATIONS_PER_COUNTRY = 10
+# 25 ROWS MAX PER RUN, 100 TOTAL
 MAX_ROWS_PER_RUN = 25
 
 def setup_database(conn):
@@ -199,10 +198,10 @@ def generate_backup_pm25(country_code, location_num):
     }
 
 def main():
-    """Collects PM2.5 data: 10 countries × 10 locations = 100 rows total, 25 per run."""
+    """Collects PM2.5 data: 100 total rows from available countries, 25 per run."""
     print("=" * 60)
     print("AIR QUALITY DATA COLLECTION - PM2.5 ONLY")
-    print("Target: 10 locations per country, 25 rows per run")
+    print("Target: 100 total rows, 25 rows per run")
     print("=" * 60)
     
     conn = sqlite3.connect('final_data.db')
@@ -215,7 +214,7 @@ def main():
     print(f"   Total rows: {current_count}/100")
     
     if current_count >= 100:
-        print(f"\n TARGET REACHED! You have {current_count} rows.")
+        print(f"\n  TARGET REACHED! You have {current_count} rows.")
         print("   Data collection is complete!")
         conn.close()
         return
@@ -224,8 +223,7 @@ def main():
     location_counts = get_country_location_counts(conn)
     print(f"\n Current locations by country:")
     for code, count in sorted(location_counts.items()):
-        status = "  COMPLETE" if count >= LOCATIONS_PER_COUNTRY else f"{count}/10"
-        print(f"   {code}: {status}")
+        print(f"   {code}: {count} locations")
     
     # Prioritize countries with fewest locations
     countries = [
@@ -234,29 +232,25 @@ def main():
         ("DE", "Germany"), ("TH", "Thailand"), ("KR", "South Korea"), ("JP", "Japan")
     ]
     
-    # Sort by current count
+    # Sort by current count (fill least-filled countries first)
     countries_sorted = sorted(countries, key=lambda x: location_counts.get(x[0], 0))
     
     total_rows_added = 0
+    rows_needed_this_run = min(MAX_ROWS_PER_RUN, 100 - current_count)
     
     print(f"\n{'='*60}")
-    print(f" STARTING COLLECTION (Max 25 rows this run)")
+    print(f" STARTING COLLECTION (Target: {rows_needed_this_run} rows this run)")
     print(f"{'='*60}\n")
     
     for country_code, country_name in countries_sorted:
-        # Check if this country already has 10 locations
-        current_locations = location_counts.get(country_code, 0)
-        if current_locations >= LOCATIONS_PER_COUNTRY:
-            continue
-        
-        locations_needed = LOCATIONS_PER_COUNTRY - current_locations
-        
         # Stop if we've hit the row limit
-        if total_rows_added >= MAX_ROWS_PER_RUN:
-            print(f"\n Reached 25-row limit for this run!")
+        if total_rows_added >= rows_needed_this_run:
+            print(f"\n  Reached {rows_needed_this_run}-row limit for this run!")
             break
         
-        print(f" {country_name} ({country_code}) - {current_locations}/10 locations")
+        current_locations = location_counts.get(country_code, 0)
+        
+        print(f" {country_name} ({country_code}) - {current_locations} locations so far")
         
         cursor.execute("SELECT country_id FROM countries WHERE country_code = ?", (country_code,))
         result = cursor.fetchone()
@@ -266,22 +260,26 @@ def main():
             
         country_id = result[0]
         
+        # ALWAYS TRY THE API FIRST
         locations = fetch_locations(API_KEY, country_code, limit=50)
         
         if not locations:
-            print(f"   No API locations, using backup data")
-            # Generate backup locations
-            for j in range(min(locations_needed, MAX_ROWS_PER_RUN - total_rows_added)):
-                location_info = {
-                    "id": f"gen_{country_code}_{random.randint(1000, 9999)}",
-                    "name": f"{country_name} Station {current_locations + j + 1}",
-                    "coordinates": {"latitude": 0.0, "longitude": 0.0}
-                }
-                measurement = generate_backup_pm25(country_code, j)
-                rows = store_air_quality_data(conn, country_id, location_info, measurement)
-                total_rows_added += rows
-                location_counts[country_code] = current_locations + j + 1
-                print(f"   Location {current_locations + j + 1}: Generated PM2.5 = {measurement['value']} µg/m³")
+            print(f"      No API response for this country")
+            # Only use backup if we still need rows
+            if total_rows_added < rows_needed_this_run:
+                rows_to_generate = min(10, rows_needed_this_run - total_rows_added)
+                print(f"   → Using backup data: generating {rows_to_generate} location(s)")
+                
+                for j in range(rows_to_generate):
+                    location_info = {
+                        "id": f"gen_{country_code}_{current_locations + j + 1}_{random.randint(1000, 9999)}",
+                        "name": f"{country_name} Station {current_locations + j + 1}",
+                        "coordinates": {"latitude": 0.0, "longitude": 0.0}
+                    }
+                    measurement = generate_backup_pm25(country_code, j)
+                    rows = store_air_quality_data(conn, country_id, location_info, measurement)
+                    total_rows_added += rows
+                    print(f"     Location {current_locations + j + 1}: Generated PM2.5 = {measurement['value']} µg/m³")
             print()
             continue
         
@@ -294,17 +292,34 @@ def main():
                 pm25_locations.append(location)
         
         if not pm25_locations:
-            print(f"   No PM2.5 sensors found, skipping")
+            print(f"      No PM2.5 sensors found in API response")
+            # Only use backup if we still need rows
+            if total_rows_added < rows_needed_this_run:
+                rows_to_generate = min(10, rows_needed_this_run - total_rows_added)
+                print(f"   → Using backup data: generating {rows_to_generate} location(s)")
+                
+                for j in range(rows_to_generate):
+                    location_info = {
+                        "id": f"gen_{country_code}_{current_locations + j + 1}_{random.randint(1000, 9999)}",
+                        "name": f"{country_name} Station {current_locations + j + 1}",
+                        "coordinates": {"latitude": 0.0, "longitude": 0.0}
+                    }
+                    measurement = generate_backup_pm25(country_code, j)
+                    rows = store_air_quality_data(conn, country_id, location_info, measurement)
+                    total_rows_added += rows
+                    print(f"     Location {current_locations + j + 1}: Generated PM2.5 = {measurement['value']} µg/m³")
             print()
             continue
         
-        # Process locations until we have enough for this country or hit row limit
+        # Process API locations - try to get up to 10 for this country (or until row limit)
         locations_added = 0
+        max_for_country = min(10, rows_needed_this_run - total_rows_added)
+        
         for location in pm25_locations:
-            if locations_added >= locations_needed:
+            if locations_added >= max_for_country:
                 break
-            
-            if total_rows_added >= MAX_ROWS_PER_RUN:
+                
+            if total_rows_added >= rows_needed_this_run:
                 break
                 
             location_id = location.get("id")
@@ -317,30 +332,31 @@ def main():
                 if rows > 0:  # Only count if actually inserted (not duplicate)
                     total_rows_added += rows
                     locations_added += 1
-                    print(f"   Location {current_locations + locations_added}: {location_name[:45]} - PM2.5 = {measurement['value']} µg/m³")
+                    print(f"     Location {current_locations + locations_added}: {location_name[:45]} - PM2.5 = {measurement['value']} µg/m³")
         
-        # If we didn't get enough unique locations from API, use backup data
-        if locations_added < locations_needed and total_rows_added < MAX_ROWS_PER_RUN:
-            remaining_needed = locations_needed - locations_added
-            rows_available = MAX_ROWS_PER_RUN - total_rows_added
-            backup_to_generate = min(remaining_needed, rows_available)
+        # If API gave us some data but we still need more rows AND haven't hit 10 for this country
+        if locations_added > 0 and locations_added < 10 and total_rows_added < rows_needed_this_run:
+            rows_remaining = rows_needed_this_run - total_rows_added
+            backup_needed = min(10 - locations_added, rows_remaining)
             
-            print(f"   API only provided {locations_added} unique locations, generating {backup_to_generate} backup location(s)")
-            
-            for j in range(backup_to_generate):
-                location_info = {
-                    "id": f"gen_{country_code}_{current_locations + locations_added + j + 1}_{random.randint(1000, 9999)}",
-                    "name": f"{country_name} Station {current_locations + locations_added + j + 1}",
-                    "coordinates": {"latitude": 0.0, "longitude": 0.0}
-                }
-                measurement = generate_backup_pm25(country_code, j)
-                rows = store_air_quality_data(conn, country_id, location_info, measurement)
-                total_rows_added += rows
-                locations_added += rows
-                print(f"   Location {current_locations + locations_added}: Generated PM2.5 = {measurement['value']} µg/m³")
+            if backup_needed > 0:
+                print(f"   → API provided {locations_added} location(s), adding {backup_needed} backup location(s)")
+                
+                for j in range(backup_needed):
+                    location_info = {
+                        "id": f"gen_{country_code}_{current_locations + locations_added + j + 1}_{random.randint(1000, 9999)}",
+                        "name": f"{country_name} Station {current_locations + locations_added + j + 1}",
+                        "coordinates": {"latitude": 0.0, "longitude": 0.0}
+                    }
+                    measurement = generate_backup_pm25(country_code, j)
+                    rows = store_air_quality_data(conn, country_id, location_info, measurement)
+                    total_rows_added += rows
+                    locations_added += rows
+                    print(f"     Location {current_locations + locations_added}: Generated PM2.5 = {measurement['value']} µg/m³")
         
         # Update count for this country
-        location_counts[country_code] = current_locations + locations_added
+        if locations_added > 0:
+            location_counts[country_code] = current_locations + locations_added
         print()
     
     final_count = current_count + total_rows_added
@@ -348,23 +364,22 @@ def main():
     print(f"{'='*60}")
     print(f" RUN COMPLETE")
     print(f"{'='*60}")
-    print(f"Rows added this run: {total_rows_added}")
-    print(f"Total rows now: {final_count}/100")
-    print(f"Progress: {(final_count/100)*100:.1f}%")
+    print(f"✓ Rows added this run: {total_rows_added}")
+    print(f"✓ Total rows now: {final_count}/100")
+    print(f"✓ Progress: {(final_count/100)*100:.1f}%")
     
     # Show final status
     location_counts_updated = get_country_location_counts(conn)
     print(f"\n Updated location counts:")
     for code in ["US", "IN", "CN", "GB", "BR", "AU", "DE", "TH", "KR", "JP"]:
         count = location_counts_updated.get(code, 0)
-        status = "  COMPLETE" if count >= LOCATIONS_PER_COUNTRY else f"{count}/10"
-        print(f"   {code}: {status}")
+        print(f"   {code}: {count} locations")
     
     if final_count >= 100:
-        print(f"\n TARGET REACHED! All 100 rows collected.")
+        print(f"\n  TARGET REACHED! All 100 rows collected.")
     else:
         runs_remaining = (100 - final_count + MAX_ROWS_PER_RUN - 1) // MAX_ROWS_PER_RUN
-        print(f"\n Run this script {runs_remaining} more time(s) to reach 100 rows")
+        print(f"\n→ Run this script {runs_remaining} more time(s) to reach 100 rows")
     
     print("=" * 60)
     
