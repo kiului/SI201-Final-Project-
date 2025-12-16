@@ -169,7 +169,7 @@ def fetch_indicator(indicator_id, country_code, year):
         response = requests.get(url, params=params)
         
         if response.status_code != 200:
-            print(f"✗ Request failed for {country_code}: Status {response.status_code}")
+            print(f" Request failed for {country_code}: Status {response.status_code}")
             return None
         
         data = response.json()
