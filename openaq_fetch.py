@@ -364,9 +364,9 @@ def main():
     print(f"{'='*60}")
     print(f" RUN COMPLETE")
     print(f"{'='*60}")
-    print(f"✓ Rows added this run: {total_rows_added}")
-    print(f"✓ Total rows now: {final_count}/100")
-    print(f"✓ Progress: {(final_count/100)*100:.1f}%")
+    print(f"  Rows added this run: {total_rows_added}")
+    print(f"  Total rows now: {final_count}/100")
+    print(f"  Progress: {(final_count/100)*100:.1f}%")
     
     # Show final status
     location_counts_updated = get_country_location_counts(conn)
