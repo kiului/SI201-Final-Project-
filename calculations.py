@@ -62,9 +62,7 @@ def calculation_2_avg_pm25_by_country(conn):
     Output: DataFrame with country_name and avg_pm25
     Purpose: Find which countries have the cleanest/most polluted air
     """
-    # FIX: Corrected column name from a.pm25_value to a.value.
-    # NOTE: This calculation will return an empty DataFrame because the 
-    # 'air_quality_data' table currently has 0 rows, and an INNER JOIN is used on it.
+    
     query = """
     SELECT 
         c.country_name,
