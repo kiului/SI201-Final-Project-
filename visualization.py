@@ -194,7 +194,7 @@ def visualization_4_gdp_trend_top_polluters(conn, output_path='viz4_gdp_trend.pn
 
     ax.set_xlabel('Year', fontsize=12, fontweight='bold')
     ax.set_ylabel('GDP Per Capita (USD)', fontsize=12, fontweight='bold')
-    ax.set_title('GDP Per Capita Trends Over Time', fontsize=14, fontweight='bold', pad=20)
+    ax.set_title('GDP Per Capita for Top 3 Most Polluting Countries Over Time', fontsize=14, fontweight='bold', pad=20)
     ax.legend(title='Country')
     ax.grid(True, alpha=0.3, linestyle='--')
     
